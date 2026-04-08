@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pIX — Measure anything on screen</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #FF9500; --bg: #0A0908; --surface: #111009;
+      --border: #1e1c18; --white: #F5F4F0; --muted: #555;
+      --r: 9999px; --r-pill: 9999px 9999px 9999px 0;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Kanit', sans-serif; background: var(--bg); color: var(--white); overflow-x: hidden; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 28px 56px; position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: linear-gradient(to bottom, rgba(10,9,8,0.98) 60%, transparent); }
+    .nav-logo { font-weight: 800; font-size: 30px; letter-spacing: -0.02em; }
+    .nav-logo span { color: var(--orange); }
+    .tower { display: grid; grid-template-columns: 1fr 240px; gap: 0 80px; max-width: 1060px; margin: 0 auto; padding: 0 56px; align-items: start; }
+    .tower-left { min-width: 0; }
+    .tower-svg { grid-column: 2; grid-row: 1 / 3; position: sticky; top: 80px; padding-top: 60px; padding-bottom: 40px; filter: drop-shadow(0 0 40px rgba(255,149,0,0.3)) drop-shadow(0 0 100px rgba(255,149,0,0.12)); }
+    .tower-svg svg { width: 200px; height: auto; display: block; }
+    .hero { padding: 140px 0 80px; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,149,0,0.1); border: 1px solid rgba(255,149,0,0.25); border-radius: var(--r-pill); padding: 7px 18px; font-size: 12px; font-weight: 600; color: var(--orange); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 36px; animation: fadeUp 0.6s ease both; }
+    .hero-badge::before { content: ''; width: 6px; height: 6px; background: var(--orange); border-radius: 50%; }
+    .pix-mark { color: var(--white); font-weight: 800; }
+    .pix-mark span { color: var(--orange); }
+    h1 { font-size: clamp(56px, 7.5vw, 108px); font-weight: 800; line-height: 0.92; letter-spacing: -0.04em; margin-bottom: 32px; animation: fadeUp 0.7s 0.1s ease both; }
+    h1 em { font-style: normal; color: var(--orange); }
+    .hero-sub { font-size: 18px; font-weight: 300; line-height: 1.65; color: #777; margin-bottom: 52px; max-width: 480px; animation: fadeUp 0.7s 0.2s ease both; }
+    .hero-cta { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; animation: fadeUp 0.7s 0.3s ease both; }
+    .btn-primary { background: var(--orange); color: #000; font-family: 'Kanit', sans-serif; font-weight: 800; font-size: 17px; padding: 17px 40px; border-radius: var(--r-pill); border: none; cursor: pointer; text-decoration: none; letter-spacing: 0.03em; transition: opacity 0.2s, transform 0.15s; }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-ghost { background: none; border: none; cursor: pointer; font-family: 'Kanit', sans-serif; font-size: 17px; font-weight: 400; color: var(--muted); padding: 0; transition: color 0.2s; }
+    .btn-ghost:hover { color: var(--white); }
+    .features { padding: 0 0 100px; }
+    .section-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--orange); margin-bottom: 52px; }
+    .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; }
+    .feat { background: var(--surface); border: 1px solid var(--border); padding: 36px 28px; }
+    .feat:nth-child(1) { border-radius: 24px 0 0 0; } .feat:nth-child(2) { border-radius: 0 24px 0 0; }
+    .feat:nth-child(3) { border-radius: 0 0 0 24px; } .feat:nth-child(4) { border-radius: 0 0 24px 0; }
+    .feat-num { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--orange); margin-bottom: 16px; }
+    .feat-title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px; line-height: 1.1; }
+    .feat-desc { font-size: 14px; font-weight: 300; line-height: 1.7; color: #666; }
+    .how { padding: 100px 56px; background: #0d0c0a; }
+    .how-inner { max-width: 720px; }
+    .how h2 { font-size: clamp(40px, 5.5vw, 72px); font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; margin-bottom: 64px; }
+    .how h2 em { font-style: normal; color: var(--orange); }
+    .steps { display: flex; flex-direction: column; gap: 2px; }
+    .step { display: flex; align-items: flex-start; gap: 28px; padding: 32px 36px; background: var(--surface); border: 1px solid var(--border); }
+    .step:first-child { border-radius: 20px 20px 0 0; } .step:last-child { border-radius: 0 0 20px 20px; }
+    .step-num { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--orange); color: var(--orange); font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 3px; }
+    .step h3 { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .step p { font-size: 15px; font-weight: 300; color: #666; line-height: 1.7; }
+    .step p strong { font-weight: 600; color: #999; }
+    .works { padding: 100px 56px; }
+    .works h2 { font-size: clamp(36px, 5vw, 64px); font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-bottom: 16px; }
+    .works-sub { font-size: 17px; font-weight: 300; color: var(--muted); margin-bottom: 56px; max-width: 520px; line-height: 1.6; }
+    .targets { display: flex; flex-wrap: wrap; gap: 10px; }
+    .target-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-pill); padding: 12px 22px; font-size: 15px; font-weight: 600; color: #aaa; }
+    .target-pill::before { content: ''; width: 6px; height: 6px; background: var(--orange); border-radius: 50%; opacity: 0.7; }
+    .pricing { padding: 100px 56px; background: #0d0c0a; }
+    .pricing-inner { display: grid; grid-template-columns: 1fr 420px; gap: 80px; align-items: center; max-width: 1100px; }
+    .pricing-left h2 { font-size: clamp(40px, 5vw, 68px); font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; margin-bottom: 24px; }
+    .pricing-left h2 em { font-style: normal; color: var(--orange); }
+    .pricing-left p { font-size: 16px; font-weight: 300; color: #666; line-height: 1.7; max-width: 380px; }
+    .price-card { background: var(--surface); border: 1px solid var(--border); border-radius: 28px; padding: 52px 48px; }
+    .price-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--orange); margin-bottom: 24px; }
+    .price-amount { font-size: 88px; font-weight: 800; letter-spacing: -0.05em; line-height: 1; margin-bottom: 6px; }
+    .price-amount sup { font-size: 36px; vertical-align: super; margin-right: 4px; }
+    .price-note { font-size: 13px; font-weight: 300; color: #444; margin-bottom: 36px; }
+    .price-features { list-style: none; margin-bottom: 36px; }
+    .price-features li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 15px; font-weight: 400; color: #999; }
+    .price-features li:last-child { border-bottom: none; }
+    .price-features li::before { content: '✓'; color: var(--orange); font-weight: 800; flex-shrink: 0; }
+    .btn-buy { display: block; width: 100%; background: var(--orange); color: #000; font-family: 'Kanit', sans-serif; font-weight: 800; font-size: 18px; padding: 19px; border-radius: var(--r-pill); border: none; cursor: pointer; text-decoration: none; text-align: center; letter-spacing: 0.03em; transition: opacity 0.2s, transform 0.15s; }
+    .btn-buy:hover { opacity: 0.88; transform: translateY(-1px); }
+    .soon-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+    .soon-overlay.open { display: flex; }
+    .soon-box { background: var(--surface); border: 1px solid var(--border); border-radius: 28px; padding: 64px 48px; text-align: center; max-width: 420px; width: 90%; }
+    .soon-box h2 { font-size: 36px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 12px; }
+    .soon-box h2 em { font-style: normal; color: var(--orange); }
+    .soon-box p { font-size: 15px; font-weight: 300; color: #666; line-height: 1.6; margin-bottom: 32px; }
+    .soon-close { background: var(--orange); color: #000; font-family: 'Kanit', sans-serif; font-weight: 800; font-size: 15px; padding: 14px 36px; border-radius: var(--r-pill); border: none; cursor: pointer; transition: opacity 0.2s; }
+    .soon-close:hover { opacity: 0.88; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+    .modal-overlay.open { display: flex; }
+    .modal-box { position: relative; width: 90%; max-width: 900px; aspect-ratio: 16/9; background: #000; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
+    .modal-box iframe { width: 100%; height: 100%; border: none; display: block; }
+    .modal-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #444; font-size: 14px; }
+    .modal-placeholder svg { opacity: 0.25; }
+    .modal-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; transition: background 0.2s; z-index: 10; }
+    .modal-close:hover { background: rgba(255,255,255,0.2); }
+    footer { padding: 40px 56px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .footer-logo { font-weight: 800; font-size: 22px; letter-spacing: -0.02em; }
+    .footer-logo span { color: var(--orange); }
+    footer p { font-size: 13px; font-weight: 300; color: #333; }
+    footer a { font-size: 13px; font-weight: 300; color: #444; text-decoration: none; }
+    footer a:hover { color: var(--white); }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 900px) {
+      nav { padding: 20px 28px; }
+      .tower { grid-template-columns: 1fr; padding: 0 28px; }
+      .tower-svg { display: none; }
+      .hero { padding: 120px 0 60px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .feat:nth-child(1) { border-radius: 20px 20px 0 0; }
+      .feat:nth-child(2), .feat:nth-child(3) { border-radius: 0; }
+      .feat:nth-child(4) { border-radius: 0 0 20px 20px; }
+      .how, .works, .pricing { padding: 72px 28px; }
+      .pricing-inner { grid-template-columns: 1fr; gap: 48px; }
+      footer { padding: 32px 28px; }
+    }
+  </style>
+</head>
+<body>
+  <nav><div class="nav-logo">p<span>IX</span></div></nav>
+  <div class="tower">
+    <div class="tower-left">
+      <section class="hero">
+        <div class="hero-badge">Windows only (Mac coming soon!)</div>
+        <h1>Measure<br><em>anything.</em><br>On screen.</h1>
+        <p class="hero-sub"><span class="pix-mark">p<span>IX</span></span> is your swiss army knife for screenshots and measurements. Rearrange your design and pass the transformations on to your designer or AI agent. No more guesswork and wasting time &mdash; just measure, transform and head to the pub.</p>
+        <div class="hero-cta">
+          <a href="https://payhip.com/b/5QgIG" class="btn-primary">Get pIX &mdash; &euro;11.99</a>
+          <button class="btn-ghost" onclick="openVideo()">&#9654; Watch the video</button>
+        </div>
+      </section>
+      <section class="features" id="features">
+        <div class="section-eyebrow">What pIX does</div>
+        <div class="features-grid">
+          <div class="feat"><div class="feat-num">01</div><div class="feat-title">Non-invasive measurement</div><p class="feat-desc">Works on any visible interface &mdash; native apps, competitor sites, running games. No DOM access needed. If you can see it, pIX can measure it.</p></div>
+          <div class="feat"><div class="feat-num">02</div><div class="feat-title">AI-ready coordinates</div><p class="feat-desc">Output exact pixel coordinates, deltas, and dimensions directly to your clipboard. Paste straight into Claude, Cursor, or any AI tool.</p></div>
+          <div class="feat"><div class="feat-num">03</div><div class="feat-title">Box, ruler, zoom, frame</div><p class="feat-desc">Multiple measurement modes for every situation. Draw bounding boxes, measure distances, zoom into tight areas, and frame regions for reference.</p></div>
+          <div class="feat"><div class="feat-num">04</div><div class="feat-title">Screenshot &amp; share</div><p class="feat-desc">Capture any region instantly. Copy to clipboard with one click, or save directly to disk &mdash; no extra tools, no friction. Just screenshot and move on.</p></div>
+        </div>
+      </section>
+    </div>
+    <div class="tower-svg">
+      <svg width="200" viewBox="-2 -2 96 515" preserveAspectRatio="xMidYMin meet" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="nb_clip0"><path d="M0 19C0 8.50659 8.50659 0 19 0H73C83.4934 0 92 8.50659 92 19V499C92 505.627 86.6274 511 80 511H0V19Z" fill="white"/></clipPath>
+          <clipPath id="nb_clip1"><path d="M0 19C0 8.50659 8.50659 0 19 0H73C83.4934 0 92 8.50659 92 19V36C92 46.4934 83.4934 55 73 55H0V19Z" fill="white"/></clipPath>
+          <clipPath id="nb_clip_box"><path d="M0 156C0 146.611 7.61116 139 17 139H77C85.2843 139 92 145.716 92 154C92 162.284 85.2843 169 77 169H0V156Z"/></clipPath>
+          <clipPath id="nb_clip_ruler"><path d="M0 194C0 184.611 7.61116 177 17 177H77C85.2843 177 92 183.716 92 192C92 200.284 85.2843 207 77 207H0V194Z"/></clipPath>
+          <clipPath id="nb_clip_zoom"><path d="M0 232C0 222.611 7.61116 215 17 215H77C85.2843 215 92 221.716 92 230C92 238.284 85.2843 245 77 245H0V232Z"/></clipPath>
+          <clipPath id="nb_clip_frame"><path d="M0 270C0 260.611 7.61116 253 17 253H77C85.2843 253 92 259.716 92 268C92 276.284 85.2843 283 77 283H0V270Z"/></clipPath>
+          <g id="floppy_path" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(68.5,299.5)">
+            <path d="m.5 1.5v9c0 1.1045695.8954305 2 2 2h10c1.1045695 0 2-.8954305 2-2v-6.00280762c.0007656-1.05436179-.8150774-1.91816512-1.8499357-1.99451426l-.1500643-.00468356-5 .00200544-2-2h-4c-.55228475 0-1 .44771525-1 1z" stroke-width="1.8"/>
+            <path d="m.5 2.5h7" stroke-width="1.8"/>
+          </g>
+          <path id="gear_path" d="M83.6462 306.979C83.689 306.667 83.7104 306.344 83.7104 306C83.7104 305.667 83.689 305.333 83.6355 305.021L85.8094 303.375C86.0021 303.229 86.0557 302.948 85.9379 302.74L83.8818 299.281C83.7533 299.052 83.4855 298.979 83.2499 299.052L80.6905 300.052C80.1551 299.656 79.5875 299.323 78.9557 299.073L78.5701 296.427C78.5273 296.177 78.3131 296 78.0561 296H73.9439C73.6869 296 73.4834 296.177 73.4406 296.427L73.055 299.073C72.4232 299.323 71.8449 299.667 71.3202 300.052L68.7608 299.052C68.5252 298.969 68.2574 299.052 68.1289 299.281L66.0835 302.74C65.955 302.958 65.9979 303.229 66.212 303.375L68.3859 305.021C68.3324 305.333 68.2896 305.677 68.2896 306C68.2896 306.323 68.311 306.667 68.3645 306.979L66.1906 308.625C65.9979 308.771 65.9443 309.052 66.0621 309.26L68.1182 312.719C68.2467 312.948 68.5145 313.021 68.7501 312.948L71.3095 311.948C71.8449 312.344 72.4125 312.677 73.0443 312.927L73.4299 315.573C73.4834 315.823 73.6869 316 73.9439 316H78.0561C78.3131 316 78.5273 315.823 78.5594 315.573L78.945 312.927C79.5768 312.677 80.1551 312.344 80.6798 311.948L83.2392 312.948C83.4748 313.031 83.7426 312.948 83.8711 312.719L85.9272 309.26C86.0557 309.031 86.0021 308.771 85.7987 308.625L83.6462 306.979ZM76 309.75C73.8796 309.75 72.1448 308.062 72.1448 306C72.1448 303.938 73.8796 302.25 76 302.25C78.1204 302.25 79.8552 303.938 79.8552 306C79.8552 308.062 78.1204 309.75 76 309.75Z"/>
+          <path id="undo_path" d="M4.73,9.3v39.28h39.28l4.63,0l-3.27-3.28L33.91,33.85c0.76-0.73,1.54-1.44,2.36-2.11c1.08-0.88,2.22-1.72,3.38-2.48l0,0c6.02-3.92,13.21-6.21,20.94-6.21l0.01,0v-0.01c10.59,0,20.18,4.3,27.12,11.24c6.94,6.94,11.24,16.53,11.24,27.11h-0.01v0.05h0.01c0,10.59-4.3,20.19-11.24,27.12c-6.94,6.94-16.53,11.24-27.11,11.24v-0.01l-0.08,0v0.01c-3.7,0-7.39-0.54-10.93-1.59v0c-1.95-0.58-3.87-1.33-5.71-2.22c-9.39-4.54-16.65-12.8-19.87-22.87l-0.43-1.33L0,71.82l0.47,2.3l0.01,0.06v0.01c0.8,3.84,2,7.62,3.53,11.24v0.01c1.51,3.55,3.38,6.98,5.53,10.19c11.03,16.43,29.78,27.25,51.05,27.25l0.01,0v-0.01c16.96,0,32.33-6.88,43.43-17.99v-0.01c11.1-11.11,17.98-26.45,17.98-43.4l0.01,0v-0.05h-0.01c0-16.96-6.88-32.32-18-43.43l0,0C92.93,6.89,77.58,0.02,60.63,0.01V0l-0.06,0v0.01c-8.71,0-17.01,1.82-24.51,5.1c-1.21,0.53-2.42,1.11-3.6,1.71c-5.48,2.83-10.47,6.46-14.83,10.74L8,7.95L4.73,4.67V9.3z"/>
+        </defs>
+        <g clip-path="url(#nb_clip0)">
+          <path d="M0 19C0 8.50659 8.50659 0 19 0H73C83.4934 0 92 8.50659 92 19V499C92 505.627 86.6274 511 80 511H0V19Z" fill="rgb(202,198,198)"/>
+          <g clip-path="url(#nb_clip1)">
+            <path d="M0 19C0 8.50659 8.50659 0 19 0H73C83.4934 0 92 8.50659 92 19V36C92 46.4934 83.4934 55 73 55H0V19Z" fill="black"/>
+            <text x="15.3" y="39.5" font-family="'Kanit'" font-weight="800" font-size="38" fill="white">pIX</text>
+          </g>
+          <path d="M0 80C0 70.6112 7.61116 63 17 63H77C85.2843 63 92 69.7157 92 78C92 86.2843 85.2843 93 77 93H0V80Z" fill="white"/>
+          <text x="10.4" y="86" font-family="'Kanit'" font-weight="800" font-size="16"><tspan fill="rgb(153,153,153)">off</tspan><tspan fill="rgb(153,153,153)">/</tspan><tspan fill="black">on</tspan></text>
+          <path d="M0 118C0 108.611 7.61116 101 17 101H77C85.2843 101 92 107.716 92 116C92 124.284 85.2843 131 77 131H0V118Z" fill="white"/>
+          <text x="10.4" y="124" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">pause</text>
+          <path d="M0 156C0 146.611 7.61116 139 17 139H77C85.2843 139 92 145.716 92 154C92 162.284 85.2843 169 77 169H0V156Z" fill="white"/>
+          <rect x="0" y="139" width="92" height="7" fill="#FF0000" clip-path="url(#nb_clip_box)"/>
+          <text x="10.4" y="162" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">box</text>
+          <path d="M0 194C0 184.611 7.61116 177 17 177H77C85.2843 177 92 183.716 92 192C92 200.284 85.2843 207 77 207H0V194Z" fill="white"/>
+          <rect x="0" y="177" width="92" height="7" fill="#0000FF" clip-path="url(#nb_clip_ruler)"/>
+          <text x="10.4" y="200" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">ruler</text>
+          <path d="M0 232C0 222.611 7.61116 215 17 215H77C85.2843 215 92 221.716 92 230C92 238.284 85.2843 245 77 245H0V232Z" fill="white"/>
+          <rect x="0" y="215" width="92" height="7" fill="#00CC00" clip-path="url(#nb_clip_zoom)"/>
+          <text x="10.4" y="238" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">zoom</text>
+          <path d="M0 270C0 260.611 7.61116 253 17 253H77C85.2843 253 92 259.716 92 268C92 276.284 85.2843 283 77 283H0V270Z" fill="white"/>
+          <rect x="0" y="253" width="92" height="7" fill="#00CC00" clip-path="url(#nb_clip_frame)"/>
+          <text x="10.4" y="276" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">frame</text>
+          <path d="M0 308C0 298.611 7.61116 291 17 291H77C85.2843 291 92 297.716 92 306C92 314.284 85.2843 321 77 321H0V308Z" fill="white"/>
+          <text x="10.4" y="314" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">layouts</text>
+          <path d="M0 346C0 336.611 7.61116 329 17 329H77C85.2843 329 92 335.716 92 344C92 352.284 85.2843 359 77 359H0V346Z" fill="white"/>
+          <text x="10.4" y="352" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">collect.</text>
+          <path d="M0 384C0 374.611 7.61116 367 17 367H77C85.2843 367 92 373.716 92 382C92 390.284 85.2843 397 77 397H0V384Z" fill="white"/>
+          <text x="10.4" y="390" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">close</text>
+          <path d="M0 422C0 412.611 7.61116 405 17 405H46V435H0V422Z" fill="white"/>
+          <path d="M46 405H77C85.2843 405 92 411.716 92 420C92 428.284 85.2843 435 77 435H46V405Z" fill="white"/>
+          <line x1="46" y1="410" x2="46" y2="430" stroke="#BBB" stroke-width="1"/>
+          <use href="#floppy_path" transform="translate(-53.5,114)" fill="black" stroke="black"/>
+          <circle cx="69.2" cy="420.2" r="9.2" fill="black"/>
+          <text x="69.2" y="424.5" font-family="'Kanit'" font-weight="800" font-size="10" fill="white" text-anchor="middle">i</text>
+          <path d="M0 460C0 450.611 7.61116 443 17 443H46V473H0V460Z" fill="white"/>
+          <path d="M46 443H77C85.2843 443 92 449.716 92 458C92 466.284 85.2843 473 77 473H46V443Z" fill="white"/>
+          <line x1="46" y1="448" x2="46" y2="468" stroke="#BBB" stroke-width="1"/>
+          <use href="#gear_path" transform="translate(-53,152)" fill="black"/>
+          <line x1="62" y1="458" x2="76" y2="458" stroke="black" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M0 498C0 488.611 7.61116 481 17 481H77C85.2843 481 92 487.716 92 496C92 504.284 85.2843 511 77 511H0V498Z" fill="white"/>
+          <line x1="46" y1="486" x2="46" y2="506" stroke="#BBB" stroke-width="1"/>
+          <use href="#undo_path" transform="translate(15,489) scale(0.13)" fill="black" opacity="0.5"/>
+          <use href="#undo_path" transform="translate(77,489) scale(-0.13,0.13)" fill="black" opacity="0.5"/>
+        </g>
+        <path d="M0 19C0 8.50659 8.50659 0 19 0H73C83.4934 0 92 8.50659 92 19V499C92 505.627 86.6274 511 80 511H0V19Z" fill="none" stroke="#FF9500" stroke-width="2"/>
+      </svg>
+    </div>
+  </div>
+
+  <section style="padding: 0 56px 100px; max-width: 1060px; margin: 0 auto;">
+    <img src="images/main_image.png" alt="pIX in action" style="width:100%; border-radius: 20px; border: 1px solid var(--border);">
+  </section>
+
+  <section class="how" id="how">
+    <div class="how-inner">
+      <h2>The loop that<br><em>actually works.</em></h2>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div><h3>Measure with pIX</h3><p>Hover over any element on screen. pIX reads the pixel position in real time &mdash; on <strong>any app, any window</strong>, not just your code.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div><h3>Tell your AI the coordinates</h3><p>Copy the old and new positions. Paste them into Claude, Cursor, or any AI coding tool. <strong>No guessing, no screenshots</strong>, no back-and-forth.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div><h3>Apply, measure, repeat</h3><p>AI applies the change. You measure the result. The delta feedback loop converges fast &mdash; <strong>exact on the first try</strong>, most of the time.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="works">
+    <div class="section-eyebrow">Works on anything visible</div>
+    <h2>If you can see it,<br>pIX can measure it.</h2>
+    <p class="works-sub">Unlike browser extensions or dev tools, pIX reads pixels directly from your screen &mdash; completely non-invasive, no integration required.</p>
+    <div class="targets">
+      <div class="target-pill">Native macOS apps</div><div class="target-pill">Native Windows apps</div>
+      <div class="target-pill">Figma canvases</div><div class="target-pill">Any website</div>
+      <div class="target-pill">Electron apps</div><div class="target-pill">Running games</div>
+      <div class="target-pill">Video players</div><div class="target-pill">PDF viewers</div>
+      <div class="target-pill">Terminal emulators</div><div class="target-pill">Your own app</div>
+    </div>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <div class="pricing-inner">
+      <div class="pricing-left">
+        <div class="section-eyebrow">Pricing</div>
+        <h2>One price.<br><em>Yours forever.</em></h2>
+        <p>Buy once, keep it forever. pIX will never stop working &mdash; it&rsquo;s yours. Install it on your work machine, your laptop, your home setup &mdash; unlimited installs, no questions asked. You get one year of free updates included. After that, major new versions are an optional paid upgrade. Don&rsquo;t want to upgrade? No problem &mdash; your version keeps right on working. No subscription, no expiry, no nonsense.</p>
+      </div>
+      <div class="price-card">
+        <div class="price-label">pIX &mdash; One-time purchase</div>
+        <div class="price-amount"><sup>&euro;</sup>11.99</div>
+        <p class="price-note">Windows only (Mac coming soon!) &middot; One-time &middot; Yours forever</p>
+        <ul class="price-features">
+          <li>Unlimited installs &mdash; personal use</li>
+          <li>Windows only (Mac coming soon!) builds included</li>
+          <li>All measurement modes</li>
+          <li>Screenshot &amp; clipboard tools</li>
+          <li>Layouts &amp; collections</li>
+          <li>1 year of free updates included</li>
+          <li>App works forever &mdash; no expiry</li>
+          <li>Future major versions optional</li>
+        </ul>
+        <a href="https://payhip.com/b/5QgIG" class="btn-buy">Buy pIX &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">p<span>IX</span></div>
+    <p>&copy; 2025 3vee.app &middot; Built for designers &amp; developers</p>
+    <div style="display:flex;gap:20px;"><a href="#">Support</a><a href="#">Privacy</a></div>
+  </footer>
+
+  <div class="soon-overlay" id="comingSoon" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="soon-box">
+      <h2>Available <em>very soon!</em></h2>
+      <p>pIX is almost ready for launch. Check back shortly.</p>
+      <button class="soon-close" onclick="document.getElementById('comingSoon').classList.remove('open')">Got it</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="videoModal" onclick="closeVideoOnBg(event)">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeVideo()">&#x2715;</button>
+      <div id="modalContent" class="modal-placeholder">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="35" stroke="white" stroke-width="2"/><polygon points="28,20 56,36 28,52" fill="white"/></svg>
+        <span>Loading&hellip;</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const YOUTUBE_ID = '_eOUHexpdcg';
+    function openVideo() {
+      const modal = document.getElementById('videoModal');
+      const content = document.getElementById('modalContent');
+      if (YOUTUBE_ID) content.innerHTML = '<iframe src="https://www.youtube.com/embed/' + YOUTUBE_ID + '?autoplay=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeVideo() {
+      document.getElementById('modalContent').innerHTML = '<svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="35" stroke="white" stroke-width="2"/><polygon points="28,20 56,36 28,52" fill="white"/></svg><span>Loading&hellip;</span>';
+      document.getElementById('videoModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    function closeVideoOnBg(e) { if (e.target === document.getElementById('videoModal')) closeVideo(); }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeVideo(); });
+  </script>
+</body>
+</html>

@@ -122,12 +122,15 @@
   <div class="tower">
     <div class="tower-left">
       <section class="hero">
-        <div class="hero-badge">Windows only (Mac coming soon!)</div>
+        <div class="hero-badge">Mac &amp; Windows</div>
         <h1>Measure<br><em>anything.</em><br>On screen.</h1>
         <p class="hero-sub"><span class="pix-mark">p<span>IX</span></span> is your swiss army knife for screenshots and measurements. Rearrange your design and pass the transformations on to your designer or AI agent. No more guesswork and wasting time &mdash; just measure, transform and head to the pub.</p>
         <div class="hero-cta">
-          <a href="https://payhip.com/b/5QgIG" class="btn-primary">Get pIX &mdash; &euro;11.99</a>
-          <button class="btn-ghost" onclick="openVideo()">&#9654; Watch the video</button>
+          <a href="https://payhip.com/b/5QgIG" class="btn-primary">Get pIX &mdash; &euro;9.99</a>
+          <div style="display:flex;gap:24px;">
+            <button class="btn-ghost" onclick="openVideo('_eOUHexpdcg')">&#9654; Watch the introduction</button>
+            <button class="btn-ghost" onclick="openVideo('9HLhIxWm3fw')">&#9654; Watch the full run-through</button>
+          </div>
         </div>
       </section>
       <section class="features" id="features">
@@ -160,7 +163,7 @@
           <path d="M0 19C0 8.50659 8.50659 0 19 0H73C83.4934 0 92 8.50659 92 19V499C92 505.627 86.6274 511 80 511H0V19Z" fill="rgb(202,198,198)"/>
           <g clip-path="url(#nb_clip1)">
             <path d="M0 19C0 8.50659 8.50659 0 19 0H73C83.4934 0 92 8.50659 92 19V36C92 46.4934 83.4934 55 73 55H0V19Z" fill="black"/>
-            <text x="15.3" y="39.5" font-family="'Kanit'" font-weight="800" font-size="38" fill="white">pIX</text>
+            <text x="15.3" y="39.5" font-family="'Kanit'" font-weight="800" font-size="38"><tspan fill="white">p</tspan><tspan fill="#FF9500">IX</tspan></text>
           </g>
           <path d="M0 80C0 70.6112 7.61116 63 17 63H77C85.2843 63 92 69.7157 92 78C92 86.2843 85.2843 93 77 93H0V80Z" fill="white"/>
           <text x="10.4" y="86" font-family="'Kanit'" font-weight="800" font-size="16"><tspan fill="rgb(153,153,153)">off</tspan><tspan fill="rgb(153,153,153)">/</tspan><tspan fill="black">on</tspan></text>
@@ -170,11 +173,11 @@
           <rect x="0" y="139" width="92" height="7" fill="#FF0000" clip-path="url(#nb_clip_box)"/>
           <text x="10.4" y="162" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">box</text>
           <path d="M0 194C0 184.611 7.61116 177 17 177H77C85.2843 177 92 183.716 92 192C92 200.284 85.2843 207 77 207H0V194Z" fill="white"/>
-          <rect x="0" y="177" width="92" height="7" fill="#0000FF" clip-path="url(#nb_clip_ruler)"/>
+          <rect x="0" y="177" width="92" height="7" fill="#FFD600" clip-path="url(#nb_clip_ruler)"/>
           <text x="10.4" y="200" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">ruler</text>
           <path d="M0 232C0 222.611 7.61116 215 17 215H77C85.2843 215 92 221.716 92 230C92 238.284 85.2843 245 77 245H0V232Z" fill="white"/>
-          <rect x="0" y="215" width="92" height="7" fill="#00CC00" clip-path="url(#nb_clip_zoom)"/>
-          <text x="10.4" y="238" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">zoom</text>
+          <rect x="0" y="215" width="92" height="7" fill="#0000FF" clip-path="url(#nb_clip_zoom)"/>
+          <text x="10.4" y="238" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">group</text>
           <path d="M0 270C0 260.611 7.61116 253 17 253H77C85.2843 253 92 259.716 92 268C92 276.284 85.2843 283 77 283H0V270Z" fill="white"/>
           <rect x="0" y="253" width="92" height="7" fill="#00CC00" clip-path="url(#nb_clip_frame)"/>
           <text x="10.4" y="276" font-family="'Kanit'" font-weight="800" font-size="16" fill="black">frame</text>
@@ -242,11 +245,11 @@
       </div>
       <div class="price-card">
         <div class="price-label">pIX &mdash; One-time purchase</div>
-        <div class="price-amount"><sup>&euro;</sup>11.99</div>
-        <p class="price-note">Windows only (Mac coming soon!) &middot; One-time &middot; Yours forever</p>
+        <div class="price-amount"><sup>&euro;</sup>9.99</div>
+        <p class="price-note">Mac &amp; Windows &middot; One-time &middot; Yours forever</p>
         <ul class="price-features">
           <li>Unlimited installs &mdash; personal use</li>
-          <li>Windows only (Mac coming soon!) builds included</li>
+          <li>Mac &amp; Windows builds included</li>
           <li>All measurement modes</li>
           <li>Screenshot &amp; clipboard tools</li>
           <li>Layouts &amp; collections</li>
@@ -284,11 +287,10 @@
   </div>
 
   <script>
-    const YOUTUBE_ID = '_eOUHexpdcg';
-    function openVideo() {
+    function openVideo(id) {
       const modal = document.getElementById('videoModal');
       const content = document.getElementById('modalContent');
-      if (YOUTUBE_ID) content.innerHTML = '<iframe src="https://www.youtube.com/embed/' + YOUTUBE_ID + '?autoplay=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
+      if (id) content.innerHTML = '<iframe src="https://www.youtube.com/embed/' + id + '?autoplay=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
       modal.classList.add('open');
       document.body.style.overflow = 'hidden';
     }

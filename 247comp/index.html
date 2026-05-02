@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24:7 Comp — Dynamics, all day every day</title>
+  <link rel="icon" type="image/svg+xml" href="../pIX/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Qilka';
+      src: url('Fonts/qilka/Qilka-Bold.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #29B6F6; --accent-2: #4CAF50; --bg: #0A0908; --surface: #111009;
+      --border: #1e1c18; --white: #F5F4F0; --muted: #555;
+      --r-pill: 9999px 9999px 9999px 0;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Kanit', sans-serif; background: var(--bg); color: var(--white); overflow-x: hidden; }
+    nav { display: none; }
+    .brand-mark { font-family: 'Qilka', 'Kanit', sans-serif; font-weight: 700; display: flex; flex-direction: column; flex-shrink: 0; line-height: 0.85; }
+    .brand-mark .row { display: block; }
+    .brand-mark .threevee { font-size: clamp(44px, 5.4vw, 72px); color: var(--white); }
+    .brand-mark .introducing { font-family: 'Kanit', sans-serif; font-weight: 600; font-style: italic; font-size: clamp(16px, 1.6vw, 20px); color: #B864E8; letter-spacing: 0.18em; text-transform: uppercase; margin: 14px 0 12px; }
+    .brand-mark .twofourseven { font-size: clamp(62px, 7.4vw, 100px); display: flex; align-items: baseline; }
+    .brand-mark .twofourseven .d2,
+    .brand-mark .twofourseven .d4 { color: #4CAF50; }
+    .brand-mark .twofourseven .colon { color: var(--white); margin: 0 0.12em; }
+    .brand-mark .twofourseven .d7 { color: #FF9500; }
+    .brand-mark .comp { font-size: clamp(54px, 6.6vw, 88px); color: var(--accent); margin-top: 9px; display: inline-block; transform: scaleY(1.09); transform-origin: top left; margin-bottom: 0.09em; }
+    .hero-row { display: flex; align-items: flex-start; gap: 48px; padding-top: 70px; }
+    .hero-row .hero { padding-top: 0; }
+    .container { max-width: 1060px; margin: 0 auto; padding: 0 56px; }
+
+    .hero { padding: 90px 0 32px; text-align: left; max-width: 820px; }
+    .hero .hero-badge { display: flex; width: max-content; margin-left: auto; margin-right: 0; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(41,182,246,0.1); border: 1px solid rgba(41,182,246,0.25); border-radius: var(--r-pill); padding: 6px 16px; font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 22px; animation: fadeUp 0.6s ease both; }
+    .hero-badge::before { content: ''; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+    h1 { font-family: 'Qilka', 'Kanit', sans-serif; font-size: clamp(40px, 5.4vw, 72px); font-weight: 700; line-height: 1.08; letter-spacing: -0.02em; margin-bottom: 22px; text-align: right; animation: fadeUp 0.7s 0.1s ease both; }
+    h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 17px; font-weight: 300; line-height: 1.55; color: #888; margin-bottom: 28px; max-width: 620px; animation: fadeUp 0.7s 0.2s ease both; }
+    .hero-cta { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; animation: fadeUp 0.7s 0.3s ease both; }
+    .btn-primary { background: var(--accent); color: #000; font-family: 'Kanit', sans-serif; font-weight: 800; font-size: 17px; padding: 17px 40px; border-radius: var(--r-pill); border: none; cursor: pointer; text-decoration: none; letter-spacing: 0.03em; transition: opacity 0.2s, transform 0.15s; }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-ghost { background: none; border: none; cursor: pointer; font-family: 'Kanit', sans-serif; font-size: 17px; font-weight: 400; color: var(--muted); padding: 0; transition: color 0.2s; }
+    .btn-ghost:hover { color: var(--white); }
+
+    .shot { padding: 28px 0 100px; }
+    .shot img { width: 100%; border-radius: 20px; border: 1px solid var(--border); display: block; }
+    .shot-caption { margin-top: 22px; font-size: 14px; font-weight: 300; color: #666; line-height: 1.6; text-align: center; max-width: 640px; margin-left: auto; margin-right: auto; }
+    .shot-caption a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(41,182,246,0.3); transition: border-color 0.2s; }
+    .shot-caption a:hover { border-bottom-color: var(--accent); }
+
+    .features { padding: 0 0 100px; }
+    .section-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 52px; }
+    .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; }
+    .feat { background: var(--surface); border: 1px solid var(--border); padding: 36px 28px; }
+    .feat:nth-child(1) { border-radius: 24px 0 0 0; } .feat:nth-child(2) { border-radius: 0 24px 0 0; }
+    .feat:nth-child(3) { border-radius: 0 0 0 24px; } .feat:nth-child(4) { border-radius: 0 0 24px 0; }
+    .feat-num { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 16px; }
+    .feat-title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px; line-height: 1.1; }
+    .feat-desc { font-size: 14px; font-weight: 300; line-height: 1.7; color: #777; }
+
+    .how { padding: 100px 56px; background: #0d0c0a; }
+    .how-inner { max-width: 720px; margin: 0 auto; }
+    .how h2 { font-family: 'Qilka', 'Kanit', sans-serif; font-size: clamp(40px, 5.5vw, 72px); font-weight: 700; letter-spacing: -0.02em; line-height: 0.95; margin-bottom: 64px; }
+    .how h2 em { font-style: normal; color: var(--accent); }
+    .steps { display: flex; flex-direction: column; gap: 2px; }
+    .step { display: flex; align-items: flex-start; gap: 28px; padding: 32px 36px; background: var(--surface); border: 1px solid var(--border); }
+    .step:first-child { border-radius: 20px 20px 0 0; } .step:last-child { border-radius: 0 0 20px 20px; }
+    .step-num { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 3px; }
+    .step h3 { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .step p { font-size: 15px; font-weight: 300; color: #777; line-height: 1.7; }
+    .step p strong { font-weight: 600; color: #aaa; }
+
+    .works { padding: 100px 56px; }
+    .works-inner { max-width: 1060px; margin: 0 auto; }
+    .works h2 { font-family: 'Qilka', 'Kanit', sans-serif; font-size: clamp(36px, 5vw, 64px); font-weight: 700; letter-spacing: -0.02em; line-height: 1; margin-bottom: 16px; }
+    .works-sub { font-size: 17px; font-weight: 300; color: var(--muted); margin-bottom: 56px; max-width: 560px; line-height: 1.6; }
+    .targets { display: flex; flex-wrap: wrap; gap: 10px; }
+    .target-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-pill); padding: 12px 22px; font-size: 15px; font-weight: 600; color: #aaa; }
+    .target-pill::before { content: ''; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; opacity: 0.7; }
+
+    .pricing { padding: 100px 56px; background: #0d0c0a; }
+    .pricing-inner { display: grid; grid-template-columns: 1fr 420px; gap: 80px; align-items: center; max-width: 1100px; margin: 0 auto; }
+    .pricing-left h2 { font-family: 'Qilka', 'Kanit', sans-serif; font-size: clamp(40px, 5vw, 68px); font-weight: 700; letter-spacing: -0.02em; line-height: 0.95; margin-bottom: 24px; }
+    .pricing-left h2 em { font-style: normal; color: var(--accent); }
+    .pricing-left p { font-size: 16px; font-weight: 300; color: #777; line-height: 1.7; max-width: 380px; }
+    .price-card { background: var(--surface); border: 1px solid var(--border); border-radius: 28px; padding: 52px 48px; }
+    .price-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 24px; }
+    .price-amount { font-size: 88px; font-weight: 800; letter-spacing: -0.05em; line-height: 1; margin-bottom: 6px; }
+    .price-amount sup { font-size: 36px; vertical-align: super; margin-right: 4px; }
+    .price-note { font-size: 13px; font-weight: 300; color: #555; margin-bottom: 36px; }
+    .price-features { list-style: none; margin-bottom: 36px; }
+    .price-features li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 15px; font-weight: 400; color: #aaa; }
+    .price-features li:last-child { border-bottom: none; }
+    .price-features li::before { content: '✓'; color: var(--accent); font-weight: 800; flex-shrink: 0; }
+    .btn-buy { display: block; width: 100%; background: var(--accent); color: #000; font-family: 'Kanit', sans-serif; font-weight: 800; font-size: 18px; padding: 19px; border-radius: var(--r-pill); border: none; cursor: pointer; text-decoration: none; text-align: center; letter-spacing: 0.03em; transition: opacity 0.2s, transform 0.15s; }
+    .btn-buy:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    footer { padding: 40px 56px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .footer-logo { font-family: 'Qilka', 'Kanit', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0; }
+    .footer-logo .num { color: var(--accent); }
+    footer p { font-size: 13px; font-weight: 300; color: #333; }
+    footer a { font-size: 13px; font-weight: 300; color: #444; text-decoration: none; }
+    footer a:hover { color: var(--white); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 900px) {
+      nav { padding: 20px 28px; }
+      .container { padding: 0 28px; }
+      .hero { padding: 80px 0 24px; }
+      .hero-row { flex-direction: column; gap: 20px; padding-top: 40px; }
+      .hero-row .hero { padding-top: 8px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .feat:nth-child(1) { border-radius: 20px 20px 0 0; }
+      .feat:nth-child(2), .feat:nth-child(3) { border-radius: 0; }
+      .feat:nth-child(4) { border-radius: 0 0 20px 20px; }
+      .how, .works, .pricing { padding: 72px 28px; }
+      .pricing-inner { grid-template-columns: 1fr; gap: 48px; }
+      footer { padding: 32px 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero-row">
+      <div class="brand-mark">
+        <span class="row threevee">3VEE</span>
+        <span class="row introducing">Presents</span>
+        <span class="row twofourseven"><span class="d2">2</span><span class="d4">4</span><span class="colon">:</span><span class="d7">7</span></span>
+        <span class="row comp">COMP</span>
+      </div>
+    <section class="hero">
+      <div class="hero-badge">Win &amp; Mac &middot; Linux coming soon</div>
+      <h1>The <span style="color:var(--accent)">dynamics</span> plugin<br>you'll want to use<br><span style="color:#4CAF50">all day,</span> <span style="color:#FF9500">every day!</span></h1>
+      <p class="hero-sub">Introducing <strong><span style="color:#4CAF50">24</span>&thinsp;<span style="color:#fff">:</span>&thinsp;<span style="color:#FF9500">7</span> <span style="color:var(--accent)">COMP</span></strong> &mdash; a visual, musical dynamics processor that blurs the line between compressor, expander and EQ. See exactly what you're shaping, sculpt it with curve nodes, and dial in moves that sit right the first time.</p>
+      <div class="hero-cta">
+        <a href="#pricing" class="btn-primary">Get 24:7 Comp &mdash; &euro;22</a>
+      </div>
+    </section>
+    </div>
+
+    <section class="shot">
+      <img src="images/boilerplate_image.png" alt="24:7 Comp plug-in interface">
+      <p class="shot-caption">Developed by Darius van Helfteren from <a href="https://www.amsterdammastering.com" target="_blank" rel="noopener">Amsterdam Mastering</a>, drawing on 30 years of professional mastering experience.</p>
+    </section>
+
+    <section class="features" id="features">
+      <div class="section-eyebrow">What 24:7 Comp does</div>
+      <div class="features-grid">
+        <div class="feat"><div class="feat-num">01</div><div class="feat-title">See what you're processing</div><p class="feat-desc">Live spectrum, signal trail and gain reduction overlaid on the dynamics curve. Stop guessing &mdash; you can finally see the move you're making.</p></div>
+        <div class="feat"><div class="feat-num">02</div><div class="feat-title">Comp + Exp in one curve</div><p class="feat-desc">Up and down dynamics on a single editable curve. Shape transients, lift quiet detail and tame loud parts without stacking three plug-ins.</p></div>
+        <div class="feat"><div class="feat-num">03</div><div class="feat-title">Node-based curve editor</div><p class="feat-desc">Drop nodes, drag knees, lock points. Per-band EQ-style dynamics control with the precision of a curve and the speed of a knob.</p></div>
+        <div class="feat"><div class="feat-num">04</div><div class="feat-title">Smart sidechain</div><p class="feat-desc">Built-in sidechain EQ and length window. Trigger off exactly what you want &mdash; not what happens to be loudest.</p></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="how" id="how">
+    <div class="how-inner">
+      <h2>One plug-in.<br><em>Every job.</em></h2>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div><h3>Drop it on anything</h3><p>Vocals, drums, bass, full mix, master bus. <strong>24:7 Comp</strong> reads the source, shows you the dynamics, and lets you shape them visually.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div><h3>Sculpt with the curve</h3><p>Add nodes where you want movement. Lift quiet detail upward, push loud peaks downward, hold the middle steady &mdash; <strong>all on one curve</strong>.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div><h3>Hear it. Trust it. Move on.</h3><p>Metering on input, expansion, compression and output. <strong>What you see is what you hear</strong> &mdash; no more second-guessing the gain reduction.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="works">
+    <div class="works-inner">
+      <div class="section-eyebrow">Fits any session</div>
+      <h2>VST3, AU, AAX.<br>Every DAW.</h2>
+      <p class="works-sub">If your DAW loads plug-ins, 24:7 Comp loads. Works anywhere &mdash; tracking, mixing, mastering, live, sound design.</p>
+      <div class="targets">
+        <div class="target-pill">Logic Pro</div><div class="target-pill">Pro Tools</div>
+        <div class="target-pill">Ableton Live</div><div class="target-pill">Cubase</div>
+        <div class="target-pill">Studio One</div><div class="target-pill">Reaper</div>
+        <div class="target-pill">FL Studio</div><div class="target-pill">Bitwig</div>
+        <div class="target-pill">VST3 / AU / AAX</div><div class="target-pill">Linux soon</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <div class="pricing-inner">
+      <div class="pricing-left">
+        <div class="section-eyebrow">Pricing</div>
+        <h2>One price.<br><em>Yours forever.</em></h2>
+        <p>Buy once, keep it forever. Install it on your studio rig, your laptop, your home setup &mdash; unlimited installs for personal use. One year of free updates included; major future versions are an optional paid upgrade. No subscription, no expiry, no nonsense.</p>
+      </div>
+      <div class="price-card">
+        <div class="price-label">24:7 Comp &mdash; One-time purchase</div>
+        <div class="price-amount"><sup>&euro;</sup>22</div>
+        <p class="price-note">Mac &amp; Windows &middot; Linux coming soon &middot; Yours forever</p>
+        <ul class="price-features">
+          <li>Unlimited installs &mdash; personal use</li>
+          <li>Mac &amp; Windows builds included</li>
+          <li>VST3, AU and AAX formats</li>
+          <li>Visual dynamics + curve editor</li>
+          <li>Comp, expand and sidechain in one</li>
+          <li>1 year of free updates included</li>
+          <li>App works forever &mdash; no expiry</li>
+          <li>Future major versions optional</li>
+        </ul>
+        <a href="https://payhip.com/" class="btn-buy">Buy 24:7 Comp &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">3VEE <span class="num">24:7</span> COMP</div>
+    <p>&copy; 2026 3vee.app &middot; Built for engineers &amp; producers</p>
+    <div style="display:flex;gap:20px;"><a href="../pIX/">pIX</a><a href="#">Support</a><a href="#">Privacy</a></div>
+  </footer>
+</body>
+</html>

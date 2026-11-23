@@ -27,6 +27,11 @@
     h1 { font-family: 'Qilka', 'Kanit', sans-serif; font-weight: 700; font-size: clamp(28px, 6.4vw, 88px); line-height: 1; letter-spacing: -0.02em; white-space: nowrap; }
     h1 .master { color: var(--accent); }
     h1 .daw { color: var(--blue); }
+    .container { position: relative; }
+    .login-link { position: absolute; top: 28px; right: 56px; font-size: 16px; font-weight: 400; color: var(--muted);
+                  text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: 6px 16px; }
+    .login-link:hover { color: var(--white); border-color: var(--muted); }
+    @media (max-width: 900px) { .login-link { top: 10px; right: 28px; font-size: 14px; padding: 4px 12px; } }
     .blurb { margin-top: 36px; max-width: 680px; font-size: clamp(18px, 1.8vw, 22px); font-weight: 300; line-height: 1.5; color: #aaa; }
     .feature-list { list-style: none; margin-top: 32px; max-width: 900px; columns: 2; column-gap: 40px; }
     .feature-list li { position: relative; padding-left: 22px; margin-bottom: 14px; break-inside: avoid; font-size: 18px; font-weight: 400; line-height: 1.45; color: var(--white); }
@@ -107,6 +112,10 @@
     .message { margin-top: 16px; font-size: 16px; font-weight: 300; min-height: 1.5em; }
     .message.error { color: var(--error); }
     .message.ok { color: var(--white); }
+    .privacy-note { margin-top: 14px; font-size: 14px; font-weight: 300; color: var(--muted); }
+    .privacy-note a, .site-footer a { color: var(--muted); }
+    .privacy-note a:hover, .site-footer a:hover { color: var(--white); }
+    .site-footer { margin-top: 56px; font-size: 14px; font-weight: 300; color: var(--muted); }
 
     @media (max-width: 900px) {
       .container { padding: 40px 28px 60px; }
@@ -117,6 +126,7 @@
 </head>
 <body>
   <div class="container">
+    <a class="login-link" href="/account/">Log in</a>
     <h1><span class="master">MASTER</span><span class="daw">DAW</span> - BETA</h1>
     <div class="platforms" role="group" aria-label="Choose your platform">
       <button type="button" class="platform" data-platform="windows" data-name="Windows" aria-pressed="false">Windows</button>
@@ -142,7 +152,7 @@
       <li>LUA &amp; Pure Data integrated</li>
     </ul>
 
-    <details class="faq">
+    <details class="faq" id="faq">
       <summary>FAQ</summary>
       <div class="faq-body">
         <details class="q"><summary>How much will the app cost?</summary>
@@ -199,6 +209,7 @@
       </div>
     </details>
 
+    <footer class="site-footer"><a href="/account/">Log in</a> &middot; <a href="/privacy/">Privacy</a> &middot; <a href="mailto:support@3vee.app">support@3vee.app</a></footer>
   </div>
 
   <dialog class="signup-box" id="box" aria-labelledby="box-title">
@@ -215,10 +226,14 @@
         <button type="submit" class="send" id="send">Send download link</button>
       </div>
       <p class="message" id="message" role="status" aria-live="polite"></p>
+      <p class="privacy-note">We only use your details to send the link and see how the beta is going. <a href="/privacy/" target="_blank" rel="noopener">Privacy notice</a></p>
     </form>
   </dialog>
 
   <script>
+    // /masterdaw/#faq (from the account page's Support tab) opens the FAQ
+    if (location.hash === '#faq') document.getElementById('faq').open = true;
+
     const buttons = document.querySelectorAll('.platform');
     const box = document.getElementById('box');
     const form = document.getElementById('signup');
@@ -242,7 +257,14 @@
 
     // Close: the x, the Escape key (built into <dialog>), or a click on the dimmed area outside.
     document.getElementById('close').addEventListener('click', () => box.close());
-    box.addEventListener('click', e => { if (e.target === box) box.close(); });
+    // Only a press that starts AND ends on the dimmed area closes it: dragging to select text in a
+    // field and letting go outside the box also fires a click on the dialog, which must not close it.
+    let pressedOnBackdrop = false;
+    box.addEventListener('pointerdown', e => { pressedOnBackdrop = e.target === box; });
+    box.addEventListener('click', e => {
+      if (e.target === box && pressedOnBackdrop) box.close();
+      pressedOnBackdrop = false;
+    });
     box.addEventListener('close', () => {
       platform = null;
       buttons.forEach(o => o.setAttribute('aria-pressed', 'false'));
@@ -261,7 +283,7 @@
           body: JSON.stringify({ email: address, name: document.getElementById('name').value.trim(), platform })
         });
         const body = await r.json().catch(() => ({}));
-        if (r.ok) say(`Check your inbox — the ${document.getElementById('full').textContent} download link is on its way to ${address}.`, 'ok');
+        if (r.ok) say(`Check your inbox: we've sent a sign-in link to ${address}. Click it to download for ${document.getElementById('full').textContent}.`, 'ok');
         else say(body.error || 'Something went wrong. Try again in a minute.', 'error');
       } catch {
         say("Couldn't reach the server. Check your connection and try again.", 'error');

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Your account - MASTERDAW</title>
+  <link rel="icon" type="image/svg+xml" href="../pIX/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    @font-face { font-family: 'Qilka'; src: url('../comp247/Fonts/qilka/Qilka-Bold.otf') format('opentype'); font-weight: 700; font-display: swap; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --accent: #FF8A4C; --blue: #29B6F6; --bg: #0A0908; --surface: #111009; --border: #2a2722;
+            --white: #F5F4F0; --text-2: #aaa; --muted: #777; --error: #FF5A5A; --r-pill: 9999px 9999px 9999px 0; }
+    body { font-family: 'Kanit', sans-serif; background: var(--bg); color: var(--white); min-height: 100vh; }
+    .container { max-width: 1060px; margin: 0 auto; padding: 70px 56px 80px; }
+    .top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+    .back { font-size: 15px; color: var(--muted); text-decoration: none; }
+    .back:hover { color: var(--white); }
+    h1 { font-family: 'Qilka', 'Kanit', sans-serif; font-weight: 700; font-size: clamp(28px, 5vw, 64px); line-height: 1.05; margin-top: 24px; }
+    h1 .master { color: var(--accent); } h1 .daw { color: var(--blue); }
+    .lead { margin-top: 14px; font-size: 19px; font-weight: 300; color: var(--text-2); }
+    .lead strong { color: var(--white); font-weight: 400; }
+    .muted { color: var(--muted); }
+    .linkish { font: inherit; color: var(--muted); background: none; border: none; text-decoration: underline; cursor: pointer; }
+    .linkish:hover { color: var(--white); }
+
+    /* signed out */
+    .signin { margin-top: 36px; max-width: 520px; }
+    .signin form { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; margin-top: 18px; }
+    .signin input { width: 100%; font-family: 'Kanit', sans-serif; font-size: 18px; color: var(--white); background: var(--surface);
+                    border: 2px solid var(--border); border-radius: 14px; padding: 14px 18px; }
+    .signin input:focus { border-color: var(--accent); outline: none; }
+    .btn { font-family: 'Kanit', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: 0.03em; color: #000;
+           background: var(--accent); border: none; border-radius: var(--r-pill); padding: 16px 32px; cursor: pointer; }
+    .btn:hover { opacity: 0.88; } .btn:disabled { opacity: 0.5; cursor: default; }
+    .btn:focus-visible, .signin input:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
+    .message { margin-top: 14px; font-size: 16px; font-weight: 300; min-height: 1.5em; }
+    .message.error { color: var(--error); }
+
+    /* signed in: tabs on the left, content on the right */
+    .panel { display: grid; grid-template-columns: 210px 1fr; gap: 36px; margin-top: 40px; align-items: start; }
+    .tabs { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 24px;
+            border-right: 1px solid var(--border); padding-right: 16px; }
+    .tabs button { display: flex; align-items: center; gap: 12px; width: 100%; font-family: 'Kanit', sans-serif; font-size: 17px;
+                   font-weight: 400; color: var(--text-2); background: none; border: none; border-radius: 12px;
+                   padding: 11px 14px; cursor: pointer; text-align: left; }
+    .tabs button svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8;
+                       stroke-linecap: round; stroke-linejoin: round; }
+    .tabs button:hover { color: var(--white); background: #15130f; }
+    .tabs button[aria-selected="true"] { color: var(--white); background: var(--surface); box-shadow: inset 3px 0 0 var(--accent); }
+    .tabs button[aria-selected="true"] svg { color: var(--accent); }
+    .tabs button:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+    .pane h2 { font-size: 26px; font-weight: 600; }
+    .pane-lead { margin-top: 8px; font-size: 17px; font-weight: 300; color: var(--text-2); }
+    .ask { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
+    .ask input, .ask textarea { width: 100%; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 300; color: var(--white);
+                                background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 12px 16px; }
+    .ask textarea { min-height: 170px; resize: vertical; line-height: 1.5; }
+    .ask input:focus, .ask textarea:focus { border-color: var(--accent); outline: none; }
+    .ask-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .ask .hint { font-size: 14px; color: var(--muted); font-weight: 300; }
+    .ask .hint strong { color: var(--text-2); font-weight: 400; }
+    .message.ok { color: var(--white); }
+    .convos-title { font-size: 20px; font-weight: 600; margin-top: 36px; }
+    .convo { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; margin-top: 14px; }
+    .convo > summary { list-style: none; cursor: pointer; padding: 16px 20px; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .convo > summary::-webkit-details-marker { display: none; }
+    .convo > summary .subj { font-size: 17px; font-weight: 400; }
+    .convo > summary .subj::before { content: '▸ '; color: var(--muted); }
+    .convo[open] > summary .subj::before { content: '▾ '; }
+    .convo > summary .state { font-size: 13px; color: var(--muted); white-space: nowrap; }
+    .convo > summary .state.answered { color: #5BC48A; }
+    .convo-body { padding: 0 20px 20px; }
+    /* WhatsApp-style bubbles, toned down for the dark page: support = light grey (left), you = green (right) */
+    .bubble { margin-top: 10px; padding: 9px 13px 10px; border-radius: 4px 14px 14px 14px; background: #dcdad5; color: #161512;
+              max-width: 80%; width: fit-content; box-shadow: 0 1px 1px rgba(0,0,0,0.35); }
+    .bubble.mine { margin-left: auto; border-radius: 14px 4px 14px 14px; background: #b5dba9; }
+    .bubble .who { font-size: 12px; color: #5b5a55; margin-bottom: 3px; }
+    .bubble.mine .who { color: #3f5c38; }
+    .bubble .text { white-space: pre-wrap; word-wrap: break-word; font-size: 15px; font-weight: 400; line-height: 1.5; color: #161512; }
+    .convo .atts { font-size: 13px; color: var(--muted); margin-top: 10px; }
+    .convo textarea { width: 100%; min-height: 90px; margin-top: 14px; resize: vertical; font-family: 'Kanit', sans-serif; font-size: 15px; font-weight: 300;
+                      color: var(--white); background: #0d0c0a; border: 2px solid var(--border); border-radius: 12px; padding: 10px 14px; }
+    .convo textarea:focus { border-color: var(--accent); outline: none; }
+    .convo .row3 { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 8px; }
+    .convo .row3 .btn { padding: 11px 22px; font-size: 15px; }
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 24px; }
+    .card { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; padding: 22px 22px 24px;
+            display: flex; flex-direction: column; align-items: flex-start; }
+    .card h3 { font-size: 20px; font-weight: 600; }
+    .card p { font-size: 15px; font-weight: 300; color: var(--text-2); margin: 10px 0 20px; line-height: 1.6; flex: 1; }
+    .card p strong { color: var(--white); font-weight: 400; }
+    a.btn { display: inline-block; text-decoration: none; }
+    .btn-ghost { background: none; color: var(--white); border: 2px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--muted); opacity: 1; }
+
+    .builds { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; margin-top: 24px; }
+    .build { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; padding: 22px 22px 24px;
+             display: flex; flex-direction: column; }
+    .build.mine { border-color: var(--accent); }
+    .build h2 { font-size: 24px; font-weight: 800; letter-spacing: 0.03em; }
+    .build .sub { font-size: 13px; color: var(--muted); min-height: 1.3em; }
+    .build .meta { font-size: 14px; font-weight: 300; color: var(--text-2); margin: 14px 0 18px; line-height: 1.6; flex: 1; }
+    .build form { margin-top: auto; }
+    .build .btn { width: 100%; white-space: nowrap; padding: 15px 18px; font-size: 16px; }
+    .build .meta .muted { word-break: break-all; }
+    .build .none { font-size: 15px; color: var(--muted); margin-top: auto; }
+    .note { margin-top: 28px; font-size: 15px; font-weight: 300; color: var(--muted); max-width: 720px; line-height: 1.6; }
+    .site-footer { margin-top: 56px; font-size: 14px; font-weight: 300; color: var(--muted); }
+    .site-footer a { color: var(--muted); } .site-footer a:hover { color: var(--white); }
+
+    @media (max-width: 900px) {
+      .container { padding: 40px 20px 60px; }
+      .panel { grid-template-columns: 1fr; gap: 24px; margin-top: 28px; }
+      .tabs { flex-direction: row; position: static; border-right: none; border-bottom: 1px solid var(--border);
+              padding: 0 0 10px; overflow-x: auto; }
+      .tabs button { width: auto; white-space: nowrap; }
+      .tabs button[aria-selected="true"] { box-shadow: inset 0 -3px 0 var(--accent); }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <a class="back" href="/masterdaw/">&larr; MASTERDAW</a>
+      <button type="button" class="linkish" id="logout" hidden>Sign out</button>
+    </div>
+
+    <div id="loading"><h1>&nbsp;</h1></div>
+
+    <div id="signed-out" hidden>
+      <h1>Sign in to <span class="master">MASTER</span><span class="daw">DAW</span></h1>
+      <div class="signin">
+        <p class="lead">Enter the email address you signed up with and we'll send you a sign-in link. No password needed.</p>
+        <form id="signin" novalidate>
+          <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required aria-label="Email address">
+          <button type="submit" class="btn" id="send">Send sign-in link</button>
+        </form>
+        <p class="message" id="message" role="status" aria-live="polite"></p>
+        <p class="lead muted" style="font-size:16px">Not signed up yet? <a href="/masterdaw/" style="color:var(--accent)">Get the beta</a>.</p>
+      </div>
+    </div>
+
+    <div id="signed-in" hidden>
+      <h1><span class="master">MASTER</span><span class="daw">DAW</span> beta</h1>
+      <p class="lead">Signed in as <strong id="who"></strong></p>
+
+      <div class="panel">
+        <nav class="tabs" role="tablist" aria-label="Account" aria-orientation="vertical">
+          <button type="button" role="tab" id="tab-downloads" aria-controls="pane-downloads" data-tab="downloads">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Downloads
+          </button>
+          <button type="button" role="tab" id="tab-support" aria-controls="pane-support" data-tab="support">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3M12 16.5v.01"/></svg>Support
+          </button>
+        </nav>
+
+        <section class="pane" role="tabpanel" id="pane-downloads" aria-labelledby="tab-downloads">
+          <h2>Downloads</h2>
+          <div class="builds" id="builds"></div>
+          <p class="note">Each beta version works for one month from its release. New versions appear here when they're out, so come back for the latest one any time.</p>
+        </section>
+
+        <section class="pane" role="tabpanel" id="pane-support" aria-labelledby="tab-support" hidden>
+          <h2>Support</h2>
+          <p class="pane-lead">Stuck, found a bug, or have an idea? We'd love to hear from you.</p>
+          <form class="ask" id="ask" novalidate>
+            <input type="text" id="ask-subject" maxlength="200" placeholder="Subject (optional)" aria-label="Subject">
+            <textarea id="ask-message" maxlength="20000" placeholder="What's happening? Mention your platform, the MASTERDAW version, and the steps that lead to the problem." aria-label="Your message" required></textarea>
+            <div class="ask-row">
+              <span class="hint">We'll reply by email to <strong id="ask-email"></strong>.</span>
+              <button type="submit" class="btn" id="ask-send">Send message</button>
+            </div>
+            <p class="message" id="ask-status" role="status" aria-live="polite"></p>
+          </form>
+          <div id="convos-wrap" hidden>
+            <h3 class="convos-title">Your conversations</h3>
+            <div id="convos"></div>
+          </div>
+          <div class="cards">
+            <div class="card">
+              <h3>Prefer email?</h3>
+              <p>Write to <strong>support@3vee.app</strong>, for example to send screenshots or files. It arrives in the same place.</p>
+              <a class="btn" id="mail-support" href="mailto:support@3vee.app">Email support</a>
+            </div>
+            <div class="card">
+              <h3>Questions about the beta</h3>
+              <p>Pricing, how long the beta works, system requirements and more are answered in the FAQ.</p>
+              <a class="btn btn-ghost" href="/masterdaw/#faq">Read the FAQ</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <footer class="site-footer"><a href="/privacy/">Privacy</a> &middot; <a href="mailto:support@3vee.app">support@3vee.app</a></footer>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const day = t => new Date(t * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+    const size = b => b >= 1e9 ? (b / 1e9).toFixed(1) + ' GB' : b >= 1e6 ? Math.round(b / 1e6) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB';
+    const short = { windows: 'Windows', mac: 'Mac', linux: 'Linux' };
+
+    function el(tag, props = {}, ...kids) { const e = Object.assign(document.createElement(tag), props); kids.forEach(k => e.append(k)); return e; }
+
+    function show(id) { ['loading', 'signed-out', 'signed-in'].forEach(x => $(x).hidden = x !== id); $('logout').hidden = id !== 'signed-in'; }
+
+    // --- tabs: the address bar follows the tab (/account/#support) ---
+    const TABS = ['downloads', 'support'];
+    function selectTab(name, focus) {
+      if (!TABS.includes(name)) name = 'downloads';
+      TABS.forEach(t => {
+        const on = t === name, b = $(`tab-${t}`);
+        b.setAttribute('aria-selected', String(on));
+        b.tabIndex = on ? 0 : -1;
+        $(`pane-${t}`).hidden = !on;
+      });
+      if (focus) $(`tab-${name}`).focus();
+    }
+    document.querySelectorAll('.tabs button').forEach(b => {
+      b.addEventListener('click', () => { history.replaceState(null, '', `#${b.dataset.tab}`); selectTab(b.dataset.tab); });
+      b.addEventListener('keydown', e => {   // arrow keys move between tabs
+        const i = TABS.indexOf(b.dataset.tab), d = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+        if (!d) return;
+        e.preventDefault();
+        const next = TABS[(i + d + TABS.length) % TABS.length];
+        history.replaceState(null, '', `#${next}`); selectTab(next, true);
+      });
+    });
+    window.addEventListener('hashchange', () => selectTab(location.hash.slice(1)));
+
+    function render(a) {
+      $('who').textContent = a.name ? `${a.name} (${a.email})` : a.email;
+      $('mail-support').href = 'mailto:support@3vee.app?subject=' + encodeURIComponent('MASTERDAW beta support')
+        + '&body=' + encodeURIComponent(`\n\n\n---\nAccount: ${a.email}\nPlatform: ${a.platform || ''}`);
+      $('ask-email').textContent = a.email;
+      loadConvos();
+      selectTab(location.hash.slice(1));
+      const order = Object.keys(a.builds).sort((x, y) => (y === a.platform) - (x === a.platform));
+      $('builds').replaceChildren(...order.map(key => {
+        const b = a.builds[key];
+        const card = el('div', { className: 'build' + (key === a.platform ? ' mine' : '') },
+          el('h2', { textContent: short[key] }),
+          el('div', { className: 'sub', textContent: key === 'mac' ? 'Apple Silicon' : '' }));
+        if (b.file) {
+          card.append(el('div', { className: 'meta' },
+            `Released ${day(b.released)}`, el('br'), `Works until ${day(b.expires)}`, el('br'),
+            el('span', { className: 'muted', textContent: `${b.file} · ${size(b.size)}` })));
+          const form = el('form', { method: 'post', action: `/api/account/download/${key}` },
+            el('button', { type: 'submit', className: 'btn', textContent: `Download for ${short[key]}` }));
+          card.append(form);
+        } else {
+          card.append(el('div', { className: 'meta' }), el('p', { className: 'none', textContent: 'Not available yet.' }));
+        }
+        return card;
+      }));
+      show('signed-in');
+    }
+
+    async function load() {
+      try {
+        const r = await fetch('/api/account', { cache: 'no-store', credentials: 'same-origin' });
+        if (r.status === 401) return show('signed-out');
+        if (!r.ok) throw new Error();
+        render(await r.json());
+      } catch { show('signed-out'); }
+    }
+
+    $('signin').addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = $('email').value.trim(), msg = $('message');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className = 'message error'; msg.textContent = "That email address doesn't look right."; return; }
+      $('send').disabled = true; msg.className = 'message'; msg.textContent = 'Sending…';
+      try {
+        const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+        const body = await r.json().catch(() => ({}));
+        if (r.ok) msg.textContent = `If ${email} has an account, a sign-in link is on its way. Check your inbox.`;
+        else { msg.className = 'message error'; msg.textContent = body.error || 'Something went wrong. Try again in a minute.'; }
+      } catch { msg.className = 'message error'; msg.textContent = "Couldn't reach the server. Check your connection and try again."; }
+      finally { $('send').disabled = false; }
+    });
+
+    $('ask').addEventListener('submit', async e => {
+      e.preventDefault();
+      const st = $('ask-status'), message = $('ask-message').value.trim();
+      if (message.length < 2) { st.className = 'message error'; st.textContent = 'Please write a message.'; $('ask-message').focus(); return; }
+      $('ask-send').disabled = true; st.className = 'message'; st.textContent = 'Sending…';
+      try {
+        const r = await fetch('/api/support', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ subject: $('ask-subject').value.trim(), message }) });
+        const body = await r.json().catch(() => ({}));
+        if (r.ok) { st.className = 'message ok'; st.textContent = "Thanks, we've got your message. We'll reply by email, and you'll see it here too."; $('ask').reset(); renderConvos(body.conversations); }
+        else { st.className = 'message error'; st.textContent = body.error || 'Something went wrong. Try again in a minute.'; if (r.status === 401) show('signed-out'); }
+      } catch { st.className = 'message error'; st.textContent = "Couldn't reach the server. Check your connection and try again."; }
+      finally { $('ask-send').disabled = false; }
+    });
+
+    // --- your conversations (Support tab) ---
+    const when = t => new Date(t * 1000).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const openConvos = new Set();
+    function renderConvos(list) {
+      $('convos-wrap').hidden = !list.length;
+      $('convos').replaceChildren(...list.map(c => {
+        const last = c.messages[c.messages.length - 1];
+        const answered = last && last.direction === 'out';
+        const d = el('details', { className: 'convo', open: openConvos.has(c.id) },
+          el('summary', {}, el('span', { className: 'subj', textContent: c.subject || '(no subject)' }),
+            el('span', { className: 'state' + (answered ? ' answered' : ''), textContent: (answered ? 'Answered · ' : 'Waiting for a reply · ') + when(c.updated) })));
+        d.addEventListener('toggle', () => d.open ? openConvos.add(c.id) : openConvos.delete(c.id));
+        const body = el('div', { className: 'convo-body' }, ...c.messages.map(m => el('div', { className: 'bubble' + (m.direction === 'in' ? ' mine' : '') },
+          el('div', { className: 'who', textContent: `${m.direction === 'out' ? 'MASTERDAW support' : 'You'} · ${when(m.created)}` }),
+          el('div', { className: 'text', textContent: m.body || '' }))));
+        if (c.attachments.length) body.append(el('p', { className: 'atts', textContent: `Attachments: ${c.attachments.join(', ')}` }));
+        const ta = el('textarea', { placeholder: 'Write a reply…', ariaLabel: `Reply to "${c.subject}"`, maxLength: 20000 });
+        const st = el('span', { className: 'message', role: 'status' });
+        const send = el('button', { type: 'button', className: 'btn', textContent: 'Send reply' });
+        send.addEventListener('click', async () => {
+          const message = ta.value.trim();
+          if (message.length < 2) return ta.focus();
+          send.disabled = true; st.className = 'message'; st.textContent = 'Sending…';
+          try {
+            const r = await fetch('/api/support', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ thread_id: c.id, message }) });
+            const res = await r.json().catch(() => ({}));
+            if (r.ok) { openConvos.add(c.id); renderConvos(res.conversations); }
+            else { st.className = 'message error'; st.textContent = res.error || 'Something went wrong.'; send.disabled = false; }
+          } catch { st.className = 'message error'; st.textContent = "Couldn't reach the server."; send.disabled = false; }
+        });
+        body.append(ta, el('div', { className: 'row3' }, st, send));
+        d.append(body);
+        return d;
+      }));
+    }
+    async function loadConvos() {
+      try {
+        const r = await fetch('/api/support', { cache: 'no-store', credentials: 'same-origin' });
+        if (r.ok) renderConvos((await r.json()).conversations);
+      } catch {}
+    }
+
+    $('logout').addEventListener('click', async () => {
+      await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+      show('signed-out');
+    });
+
+    load();
+  </script>
+</body>
+</html>

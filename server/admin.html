@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>MASTERDAW Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0A0908; --surface: #111009; --border: #2a2722; --grid: #24211c;
+      --text: #F5F4F0; --text-2: #aaa; --muted: #777;
+      --accent: #FF8A4C; --blue: #29B6F6;
+      --bar: #D9622A;          /* validated: dark band L 0.48-0.67, >=3:1 on --surface */
+      --ok: #5BC48A;
+    }
+    body { font-family: 'Kanit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 28px 64px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    h1 { font-size: 30px; font-weight: 800; letter-spacing: 0.01em; }
+    h1 .m { color: var(--accent); } h1 .d { color: var(--blue); }
+    .updated { font-size: 14px; font-weight: 300; color: var(--muted); }
+    .refresh { font: inherit; font-size: 14px; color: var(--text-2); background: none; border: 1px solid var(--border);
+               border-radius: 999px; padding: 6px 14px; cursor: pointer; margin-left: 10px; }
+    .refresh:hover { color: var(--text); border-color: var(--muted); }
+    a.refresh { text-decoration: none; display: inline-block; }
+    .export { color: #000; background: var(--accent); border-color: var(--accent); }
+    .export:hover { color: #000; border-color: var(--accent); opacity: 0.88; }
+
+    .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 28px; }
+    .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
+    .tile .n { font-size: 40px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .tile .l { font-size: 15px; font-weight: 300; color: var(--text-2); margin-top: 2px; }
+
+    section { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin-top: 18px; }
+    h2 { font-size: 18px; font-weight: 600; }
+    .sub { font-size: 14px; font-weight: 300; color: var(--muted); margin-top: 2px; }
+
+    /* horizontal bar chart: one series, so no legend box; the title names it */
+    .chart { margin-top: 18px; position: relative; }
+    .row { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 14px; height: 44px; }
+    .row .name { font-size: 16px; color: var(--text); text-align: right; }
+    .row .name small { display: block; font-size: 12px; color: var(--muted); line-height: 1; }
+    .track { position: relative; height: 100%; display: flex; align-items: center;
+             background-image: linear-gradient(var(--grid), var(--grid)); background-size: 1px 100%; background-repeat: no-repeat; }
+    .bar { height: 24px; background: var(--bar); border-radius: 0 4px 4px 0; min-width: 0; transition: width 0.3s; }
+    .val { font-size: 15px; color: var(--text); margin-left: 10px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .val span { color: var(--muted); font-weight: 300; }
+    .hit { position: absolute; inset: 0; cursor: default; }
+    .tip { position: absolute; pointer-events: none; background: #1d1b17; border: 1px solid var(--border); border-radius: 10px;
+           padding: 10px 12px; font-size: 14px; line-height: 1.5; color: var(--text); white-space: nowrap; opacity: 0; transition: opacity 0.1s; z-index: 2; }
+    .tip b { font-weight: 600; }
+    .tip .k { color: var(--text-2); font-weight: 300; }
+
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .filters button { font: inherit; font-size: 14px; color: var(--text-2); background: none; border: 1px solid var(--border);
+                      border-radius: 999px; padding: 5px 14px; cursor: pointer; }
+    .filters button[aria-pressed="true"] { color: #000; background: var(--accent); border-color: var(--accent); }
+    .table-wrap { overflow-x: auto; margin-top: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th { text-align: left; font-weight: 400; color: var(--muted); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+         padding: 8px 12px 8px 0; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--grid); font-weight: 300; vertical-align: top; }
+    td.email { font-weight: 400; white-space: nowrap; }
+    td.when, td.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .yes { color: var(--ok); } .no { color: var(--muted); }
+    .dl-log summary { list-style: none; cursor: pointer; display: flex; flex-direction: column; }
+    .dl-log summary::-webkit-details-marker { display: none; }
+    .dl-log summary .yes::after { content: ' ▸'; color: var(--muted); font-size: 12px; }
+    .dl-log[open] summary .yes::after { content: ' ▾'; }
+    .dl-first { font-size: 13px; color: var(--muted); }
+    .used-up { align-self: flex-start; font-size: 12px; font-weight: 400; color: var(--accent); border: 1px solid #5a3420;
+               background: #241510; border-radius: 999px; padding: 1px 8px; margin: 3px 0 2px; white-space: nowrap; }
+    .dl-log ol { list-style: none; margin-top: 6px; padding-left: 10px; border-left: 1px solid var(--border); }
+    .dl-log li { font-size: 13px; line-height: 1.6; display: flex; flex-direction: column; margin-bottom: 4px; }
+    .dl-log li .k { color: var(--muted); }
+    .empty { color: var(--muted); font-weight: 300; padding: 18px 0; }
+
+    /* People | Support switch */
+    .views { display: flex; gap: 6px; margin-top: 22px; border-bottom: 1px solid var(--border); }
+    .views a { color: var(--text-2); text-decoration: none; font-size: 16px; padding: 8px 14px 10px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .views a:hover { color: var(--text); }
+    .views a[aria-current="page"] { color: var(--text); border-bottom-color: var(--accent); }
+    .badge { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: #000;
+             font-size: 12px; font-weight: 600; text-align: center; line-height: 20px; margin-left: 4px; }
+
+    /* support inbox */
+    .inbox { display: grid; grid-template-columns: 340px 1fr; gap: 18px; margin-top: 22px; align-items: start; }
+    .threads { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; max-height: 78vh; overflow-y: auto; }
+    .thread { display: block; width: 100%; text-align: left; font: inherit; color: var(--text); background: none; border: none;
+              border-bottom: 1px solid var(--grid); padding: 12px 16px; cursor: pointer; }
+    .thread:hover { background: #17150f; }
+    .thread[aria-current="true"] { background: #1d1a14; box-shadow: inset 3px 0 0 var(--accent); }
+    .thread .top { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+    .thread .who { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .thread.unread .who, .thread.unread .subj { font-weight: 600; }
+    .thread.unread .who::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 7px; vertical-align: 1px; }
+    .thread .when { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .thread .subj { font-size: 14px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .thread .prev { font-size: 13px; color: var(--muted); font-weight: 300; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .thread .closed-tag { font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 6px; margin-left: 6px; }
+    .badge[hidden] { display: none; }
+    .convo { margin-top: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px 22px; min-height: 300px; }
+    .convo-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+    .convo-head h2 { font-size: 20px; }
+    .acct { font-size: 13px; color: var(--muted); font-weight: 300; margin-top: 4px; }
+    /* WhatsApp-style bubbles, toned down for the dark page: them = light grey (left), us = green (right) */
+    .msg { margin-top: 10px; padding: 9px 13px 10px; border-radius: 4px 14px 14px 14px; background: #dcdad5; color: #161512;
+           max-width: 78%; width: fit-content; box-shadow: 0 1px 1px rgba(0,0,0,0.35); }
+    .msg.out { margin-left: auto; border-radius: 14px 4px 14px 14px; background: #b5dba9; }
+    .msg .meta { font-size: 12px; color: #5b5a55; margin-bottom: 3px; }
+    .msg.out .meta { color: #3f5c38; }
+    .msg .text { white-space: pre-wrap; word-wrap: break-word; font-size: 15px; font-weight: 400; line-height: 1.5; }
+    .show-quoted { font: inherit; font-size: 12px; color: #5b5a55; background: none; border: none; text-decoration: underline; cursor: pointer; margin-top: 8px; padding: 0; }
+    .show-quoted:hover { color: #161512; }
+    .msg .quoted { margin-top: 8px; padding-left: 10px; border-left: 2px solid rgba(0,0,0,0.25); color: #4a4944; font-size: 14px; }
+    .msg .atts { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .msg .atts a, .msg .atts span { font-size: 13px; color: #161512; border: 1px solid rgba(0,0,0,0.25); border-radius: 999px; padding: 2px 10px; text-decoration: none; }
+    .msg .atts a:hover { border-color: rgba(0,0,0,0.55); }
+    .reply { margin-top: 20px; }
+    .reply textarea { width: 100%; min-height: 130px; resize: vertical; font: inherit; font-size: 15px; font-weight: 300; color: var(--text);
+                      background: #0d0c0a; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+    .reply textarea:focus { outline: none; border-color: var(--accent); }
+    .reply .row2 { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+    .reply .hint { font-size: 13px; color: var(--muted); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+    @media (max-width: 860px) { .inbox { grid-template-columns: 1fr; } .msg { max-width: 100%; } }
+
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .bin { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; color: var(--text-2);
+           background: none; border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+    .bin:not(:disabled):hover { color: #FF6B6B; border-color: #FF6B6B; }
+    .bin:disabled { opacity: 0.35; cursor: default; }
+    th.pick, td.pick { width: 28px; padding-right: 8px; }
+    /* quiet dark tick boxes that turn orange when ticked */
+    .pick input { appearance: none; -webkit-appearance: none; margin: 0; width: 16px; height: 16px; cursor: pointer;
+                  vertical-align: middle; border: 1.5px solid #3a362f; border-radius: 4px; background: #15130f;
+                  display: inline-grid; place-content: center; transition: background 0.1s, border-color 0.1s; }
+    .pick input:hover { border-color: #5a554c; }
+    .pick input:checked { background: var(--accent); border-color: var(--accent); }
+    .pick input:checked::after { content: ''; width: 4px; height: 8px; border: solid #000; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .pick input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    tr.selected td { background: #1a1813; }
+
+    .confirm { margin: auto; width: min(480px, calc(100vw - 32px)); background: var(--surface); color: var(--text);
+               border: 1px solid var(--border); border-radius: 18px; padding: 26px 26px 22px; }
+    .confirm::backdrop { background: rgba(0,0,0,0.7); }
+    .confirm h2 { font-size: 22px; }
+    .confirm p { font-size: 15px; font-weight: 300; color: var(--text-2); margin-top: 10px; line-height: 1.5; }
+    .confirm p strong { color: var(--text); font-weight: 600; }
+    .confirm p.small { font-size: 13px; color: var(--muted); }
+    .confirm ul { list-style: none; margin-top: 12px; max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
+    .confirm li { font-size: 15px; padding: 3px 0; word-break: break-all; }
+    .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+    .btn { font: inherit; font-size: 15px; border-radius: 999px; padding: 8px 18px; cursor: pointer; border: 1px solid var(--border); background: none; color: var(--text); }
+    .btn.danger { background: #E5484D; border-color: #E5484D; color: #fff; font-weight: 600; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    .error { color: #FF5A5A; margin-top: 18px; }
+
+    @media (max-width: 700px) {
+      .wrap { padding: 28px 16px 48px; }
+      .tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .tile { padding: 12px; } .tile .n { font-size: 28px; } .tile .l { font-size: 13px; }
+      .row { grid-template-columns: 96px 1fr; }
+      section { padding: 18px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1><span class="m">MASTER</span><span class="d">DAW</span> beta admin</h1>
+      <div class="updated"><span id="updated">Loading…</span><button class="refresh" id="refresh" type="button">Refresh</button><a class="refresh export" href="/admin/export.zip" download title="people.csv, signups.csv, downloads.csv and the full database, in one zip">Download everything (.zip)</a></div>
+    </header>
+
+    <nav class="views" aria-label="Admin sections">
+      <a href="#people" id="nav-people">People</a>
+      <a href="#support" id="nav-support">Support <span class="badge" id="unread" hidden></span></a>
+    </nav>
+
+    <div id="view-support" hidden>
+      <div class="inbox">
+        <div class="threads" id="threads" role="list" aria-label="Conversations"></div>
+        <section class="convo" id="convo" aria-live="polite">
+          <p class="empty" id="convo-empty">Pick a conversation on the left.</p>
+        </section>
+      </div>
+    </div>
+
+    <div id="view-people">
+    <div class="tiles">
+      <div class="tile"><div class="n" id="t-signups">–</div><div class="l">People signed up</div></div>
+      <div class="tile"><div class="n" id="t-emailed">–</div><div class="l">Got the email</div></div>
+      <div class="tile"><div class="n" id="t-signedin">–</div><div class="l">Signed in</div></div>
+      <div class="tile"><div class="n" id="t-downloaded">–</div><div class="l">Downloaded</div></div>
+    </div>
+
+    <section aria-labelledby="chart-title">
+      <h2 id="chart-title">People who downloaded, by platform</h2>
+      <p class="sub">Counted once per email address. Hover a bar for details.</p>
+      <div class="chart" id="chart"></div>
+    </section>
+
+    <section aria-labelledby="country-title">
+      <h2 id="country-title">People who signed up, by country</h2>
+      <p class="sub">Approximate, from their internet address. Top 8; the rest are grouped as "Other".</p>
+      <div class="chart" id="countries"></div>
+    </section>
+
+    <section aria-labelledby="list-title">
+      <div class="section-head">
+        <div>
+          <h2 id="list-title">People</h2>
+          <p class="sub">One row per person, newest first. "Signed in" is their last sign-in; click "downloads" to see each one.</p>
+        </div>
+        <button type="button" class="bin" id="bin" disabled aria-label="Delete selected people" title="Select people with the checkboxes, then delete them">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/>
+          </svg>
+          <span id="bin-count"></span>
+        </button>
+      </div>
+      <div class="filters" role="group" aria-label="Filter by platform" id="filters"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="pick"><span class="sr">Select</span></th><th>Signed up</th><th>Email</th><th>Name</th><th>Platform</th><th>Location</th><th>Email sent</th><th>Signed in</th><th>Downloaded</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+    </div><!-- /view-people -->
+    <p class="error" id="error" hidden></p>
+  </div>
+
+  <dialog class="confirm" id="confirm" aria-labelledby="confirm-title">
+    <h2 id="confirm-title">Delete <span id="confirm-n"></span>?</h2>
+    <p>This removes <strong>everything</strong> stored about them: their account, sign-ins, sign-ups and downloads. If they sign up again, they're treated as new.</p>
+    <ul id="confirm-list"></ul>
+    <p class="small">This can't be undone here. Older copies stay in the backups until those expire (30 days on the server, 90 on wko-pi).</p>
+    <div class="actions">
+      <button type="button" class="btn" id="confirm-cancel">Cancel</button>
+      <button type="button" class="btn danger" id="confirm-ok">Delete</button>
+    </div>
+  </dialog>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const short = { windows: 'Windows', mac: 'Mac', linux: 'Linux' };
+    let data = null, filter = 'all';
+    const selected = new Set();   // lower-cased email addresses: a person, with all their sign-ups
+
+    const fmt = t => t ? new Date(t * 1000).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    function el(tag, props = {}, ...kids) {
+      const e = Object.assign(document.createElement(tag), props);
+      kids.forEach(k => e.append(k));
+      return e;
+    }
+
+    function tiles() {
+      const count = pred => data.people.filter(pred).length;
+      $('t-signups').textContent = count(() => true);
+      $('t-emailed').textContent = count(p => p.mailed);
+      $('t-signedin').textContent = count(p => p.logins > 0);
+      $('t-downloaded').textContent = count(p => p.downloads > 0);
+    }
+
+    const regionNames = (() => { try { return new Intl.DisplayNames(['en'], { type: 'region' }); } catch { return null; } })();
+    const countryName = code => code ? ((regionNames && regionNames.of(code)) || code) : 'Unknown';
+    const place = s => [s.city, s.country && countryName(s.country)].filter(Boolean).join(', ') || '–';
+
+    // One series of horizontal bars: items = [{name, small?, value, after, aria, tip: [[key, value], ...]}]
+    function bars(box, items) {
+      box.replaceChildren();
+      const max = Math.max(1, ...items.map(i => i.value));
+      const tip = el('div', { className: 'tip', role: 'tooltip' });
+      items.forEach(i => {
+        const bar = el('div', { className: 'bar' }); bar.style.width = `calc((100% - 120px) * ${i.value / max})`;
+        const val = el('div', { className: 'val' }, String(i.value), el('span', { textContent: i.after }));
+        const hit = el('div', { className: 'hit', tabIndex: 0, ariaLabel: i.aria });
+        const track = el('div', { className: 'track' }, bar, val, hit);
+        const name = el('div', { className: 'name' }, i.name, ...(i.small ? [el('small', { textContent: i.small })] : []));
+        box.append(el('div', { className: 'row' }, name, track));
+        const show = () => {
+          tip.replaceChildren(el('b', { textContent: i.title || i.name }));
+          i.tip.forEach(([k, v]) => tip.append(el('br'), el('span', { className: 'k', textContent: `${k}: ` }), v));
+          const r = box.getBoundingClientRect(), t = track.getBoundingClientRect();
+          tip.style.left = `${Math.max(0, Math.min(t.left - r.left + 20, r.width - 240))}px`;
+          tip.style.top = `${t.bottom - r.top + 4}px`;
+          tip.style.opacity = 1;
+        };
+        hit.addEventListener('mouseenter', show); hit.addEventListener('focus', show);
+        hit.addEventListener('mouseleave', () => tip.style.opacity = 0); hit.addEventListener('blur', () => tip.style.opacity = 0);
+      });
+      if (!items.length) box.append(el('p', { className: 'empty', textContent: 'No sign-ups yet.' }));
+      box.append(tip);
+    }
+
+    function chart() {
+      bars($('chart'), Object.entries(data.platforms).map(([key, p]) => ({
+        name: short[key], small: key === 'mac' ? 'Apple Silicon' : '', title: p.label,
+        value: p.downloaded, after: ` of ${p.emailed} emailed`,
+        aria: `${p.label}: ${p.downloaded} downloaded, ${p.emailed} emailed, ${p.signups} sign-ups`,
+        tip: [['Downloaded', `${p.downloaded} people (${p.downloads} downloads)`], ['Got the email', `${p.emailed}`], ['Sign-ups', `${p.signups}`]],
+      })));
+    }
+
+    function countries() {
+      let list = data.countries.map(c => ({ ...c }));
+      if (list.length > 8) {
+        const rest = list.slice(7);
+        list = [...list.slice(0, 7), { country: 'other', people: rest.reduce((a, c) => a + c.people, 0),
+                                       downloaded: rest.reduce((a, c) => a + c.downloaded, 0), names: rest.map(c => countryName(c.country)) }];
+      }
+      bars($('countries'), list.map(c => {
+        const name = c.country === 'other' ? 'Other' : countryName(c.country);
+        return {
+          name, value: c.people, after: ` · ${c.downloaded} downloaded`,
+          aria: `${name}: ${c.people} signed up, ${c.downloaded} downloaded`,
+          tip: [['Signed up', `${c.people} people`], ['Downloaded', `${c.downloaded}`], ...(c.names ? [['Includes', c.names.join(', ')]] : [])],
+        };
+      }));
+    }
+
+    function filters() {
+      const box = $('filters'); box.replaceChildren();
+      [['all', 'All'], ...Object.entries(short)].forEach(([key, label]) => {
+        const n = key === 'all' ? data.people.length : data.people.filter(p => p.platforms.includes(key)).length;
+        const b = el('button', { type: 'button', textContent: `${label} (${n})` });
+        b.setAttribute('aria-pressed', String(filter === key));
+        b.addEventListener('click', () => { filter = key; filters(); rows(); });
+        box.append(b);
+      });
+    }
+
+    function rows() {
+      const list = data.people.filter(p => filter === 'all' || p.platforms.includes(filter));
+      const body = $('rows'); body.replaceChildren();
+      if (!list.length) { body.append(el('tr', {}, el('td', { colSpan: 9, className: 'empty', textContent: 'No sign-ups yet.' }))); return; }
+      list.forEach(p => {
+        const key = p.email.toLowerCase();
+        const box = el('input', { type: 'checkbox', checked: selected.has(key), ariaLabel: `Select ${p.email}` });
+        box.addEventListener('change', () => { box.checked ? selected.add(key) : selected.delete(key); rows(); });
+        const sent = el('span', { className: p.mailed ? 'yes' : 'no', textContent: p.mailed ? '✓ Yes' : '✗ Failed' });
+        const login = p.logins
+          ? el('span', {}, el('span', { className: 'yes', textContent: `✓ ${fmt(p.last_login)}` }),
+               ...(p.logins > 1 ? [el('span', { className: 'dl-first', textContent: ` ${p.logins} times` })] : []))
+          : el('span', { className: 'no', textContent: 'Never' });
+        let dl;
+        if (!p.downloads) {
+          dl = el('span', { className: 'no', textContent: 'Not yet' });
+        } else {
+          // click to see every download: when, which platform, from where
+          const where = d => [d.city, d.country && countryName(d.country)].filter(Boolean).join(', ') || 'location unknown';
+          const max = data.max_uses || 3;
+          dl = el('details', { className: 'dl-log' },
+            el('summary', {},
+              el('span', { className: 'yes', textContent: `✓ ${p.downloads === 1 ? '1 download' : `${p.downloads} downloads`}` }),
+              ...(p.link_used_up ? [el('span', { className: 'used-up', textContent: `Link used up (${max} of ${max})`,
+                                                 title: `Their emailed download link was used all ${max} times and no longer works` })] : []),
+              el('span', { className: 'dl-first', textContent: p.downloads === 1 ? fmt(p.first_download) : `first ${fmt(p.first_download)}` })),
+            el('ol', {}, ...p.download_log.map(d => el('li', {},
+              el('span', { textContent: `${fmt(d.at)} · ${short[d.platform] || d.platform || '?'}` }),
+              el('span', { className: 'k', textContent: where(d) + (d.via === 'link' ? ' · via emailed link' : '') })))));
+        }
+        body.append(el('tr', { className: selected.has(key) ? 'selected' : '' },
+          el('td', { className: 'pick' }, box),
+          el('td', { className: 'when', textContent: fmt(p.created) }),
+          el('td', { className: 'email', textContent: p.email }),
+          el('td', { textContent: p.name || '' }),
+          el('td', { textContent: p.platforms.map(k => short[k] || k).join(', ') }),
+          el('td', { textContent: place(p), title: [p.city, p.region, p.country && countryName(p.country)].filter(Boolean).join(', ') }),
+          el('td', {}, sent),
+          el('td', { className: 'when' }, login),
+          el('td', { className: 'when' }, dl)));
+      });
+    }
+
+    async function load() {
+      $('refresh').disabled = true;
+      try {
+        const r = await fetch('/admin/data.json', { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        data = await r.json();
+        const present = new Set(data.people.map(p => p.email.toLowerCase()));
+        [...selected].forEach(e => present.has(e) || selected.delete(e));
+        tiles(); chart(); countries(); filters(); rows();
+        $('updated').textContent = `Updated ${fmt(data.generated)}`;
+        $('error').hidden = true;
+      } catch (e) {
+        $('error').textContent = `Couldn't load the data (${e.message}).`; $('error').hidden = false;
+      } finally { $('refresh').disabled = false; }
+    }
+    // --- selecting and deleting people ---
+    function binState() {
+      const n = selected.size;
+      $('bin').disabled = n === 0;
+      $('bin-count').textContent = n ? String(n) : '';
+      $('bin').setAttribute('aria-label', n ? `Delete ${n} selected ${n === 1 ? 'person' : 'people'}` : 'Delete selected people');
+    }
+    const _rows = rows;
+    rows = function () { _rows(); binState(); };
+
+    const confirmBox = $('confirm');
+    $('bin').addEventListener('click', () => {
+      const n = selected.size;
+      $('confirm-n').textContent = n === 1 ? '1 person' : `${n} people`;
+      $('confirm-list').replaceChildren(...[...selected].sort().map(e => {
+        const k = (data.people.find(p => p.email.toLowerCase() === e) || {}).signups || 0;
+        return el('li', { textContent: k > 1 ? `${e}  (${k} sign-ups)` : e });
+      }));
+      $('confirm-ok').disabled = false;
+      confirmBox.showModal();
+      $('confirm-cancel').focus();   // safe default: Enter cancels
+    });
+    $('confirm-cancel').addEventListener('click', () => confirmBox.close());
+    $('confirm-ok').addEventListener('click', async () => {
+      $('confirm-ok').disabled = true;
+      try {
+        const r = await fetch('/admin/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Action': 'delete' },
+          body: JSON.stringify({ emails: [...selected] }),
+        });
+        const res = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(res.error || `HTTP ${r.status}`);
+        selected.clear();
+        confirmBox.close();
+        await load();
+        $('updated').textContent = `Deleted ${res.people === 1 ? '1 person' : `${res.people} people`} (${res.signups} sign-ups, ${res.downloads} downloads)`;
+      } catch (e) {
+        confirmBox.close();
+        $('error').textContent = `Couldn't delete (${e.message}). Nothing was changed.`; $('error').hidden = false;
+      }
+    });
+
+    // --- support inbox ---
+    let threads = [], current = null;
+    const ago = t => {
+      const s = Date.now() / 1000 - t;
+      return s < 3600 ? `${Math.max(1, Math.round(s / 60))} min ago` : s < 86400 ? `${Math.round(s / 3600)} h ago` : fmt(t);
+    };
+    const postSupport = (path, body) => fetch(path, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Action': 'support' }, body: JSON.stringify(body),
+    });
+
+    async function loadSupport() {
+      try {
+        const r = await fetch('/admin/support.json', { cache: 'no-store' });
+        threads = (await r.json()).threads;
+      } catch { threads = []; }
+      const unread = threads.filter(t => t.unread).length;
+      $('unread').textContent = unread; $('unread').hidden = !unread;
+      renderThreads();
+    }
+
+    function renderThreads() {
+      const box = $('threads'); box.replaceChildren();
+      if (!threads.length) { box.append(el('p', { className: 'empty', style: 'padding:16px', textContent: 'No messages yet.' })); return; }
+      threads.forEach(t => {
+        const b = el('button', { type: 'button', className: 'thread' + (t.unread ? ' unread' : ''), role: 'listitem' },
+          el('div', { className: 'top' }, el('span', { className: 'who', textContent: t.name || t.email }), el('span', { className: 'when', textContent: ago(t.updated) })),
+          el('div', { className: 'subj' }, t.subject || '(no subject)', ...(t.status === 'closed' ? [el('span', { className: 'closed-tag', textContent: 'closed' })] : [])),
+          el('div', { className: 'prev', textContent: (t.last_dir === 'out' ? 'You: ' : '') + (t.last_body || '') }));
+        b.setAttribute('aria-current', String(current === t.id));
+        b.addEventListener('click', () => { location.hash = `#support/${t.id}`; });
+        box.append(b);
+      });
+    }
+
+    async function openThread(id) {
+      current = id; renderThreads();
+      const box = $('convo');
+      const r = await fetch(`/admin/support/${id}.json`, { cache: 'no-store' });
+      if (!r.ok) { box.replaceChildren(el('p', { className: 'empty', textContent: 'Conversation not found.' })); return; }
+      renderConvo(await r.json());
+      loadSupport();   // it's read now
+    }
+
+    function renderConvo(d) {
+      const t = d.thread, a = d.account, box = $('convo');
+      const acct = a
+        ? `Account since ${fmt(a.created)} · ${short[a.platform] || 'no platform'} · ${a.downloads} download${a.downloads === 1 ? '' : 's'} · last signed in ${a.last_login ? fmt(a.last_login) : 'never'}`
+        : 'No account with this email address';
+      const toggle = el('button', { type: 'button', className: 'btn', textContent: t.status === 'closed' ? 'Reopen' : 'Mark as done' });
+      toggle.addEventListener('click', async () => {
+        await postSupport(`/admin/support/${t.id}/status`, { status: t.status === 'closed' ? 'open' : 'closed' });
+        openThread(t.id);
+      });
+      const head = el('div', { className: 'convo-head' },
+        el('div', {}, el('h2', { textContent: t.subject || '(no subject)' }),
+          el('div', { className: 'acct' }, `${t.name ? t.name + ' · ' : ''}${t.email}`), el('div', { className: 'acct', textContent: acct })),
+        toggle);
+      const msgs = d.messages.map(m => el('div', { className: 'msg' + (m.direction === 'out' ? ' out' : '') },
+        el('div', { className: 'meta', textContent: `${m.direction === 'out' ? 'You replied' : (m.source === 'form' ? 'Via the account page' : 'By email')} · ${fmt(m.created)}` }),
+        el('div', { className: 'text', textContent: m.body || '' }),
+        ...(m.body_full ? [(() => {   // the quoted earlier email, hidden unless asked for
+          const full = el('div', { className: 'text quoted', textContent: m.body_full, hidden: true });
+          const link = el('button', { type: 'button', className: 'show-quoted', textContent: 'Show quoted text' });
+          link.addEventListener('click', () => { full.hidden = !full.hidden; link.textContent = full.hidden ? 'Show quoted text' : 'Hide quoted text'; });
+          return el('div', {}, link, full);
+        })()] : []),
+        ...(m.attachments.length ? [el('div', { className: 'atts' }, ...m.attachments.map(x => x.kept
+          ? el('a', { href: `/admin/support/attachment/${x.id}`, textContent: `📎 ${x.filename} (${Math.max(1, Math.round(x.size / 1024))} KB)` })
+          : el('span', { textContent: `📎 ${x.filename} (too big to keep)` })))] : [])));
+      const ta = el('textarea', { placeholder: `Reply to ${t.name || t.email}…`, ariaLabel: 'Your reply' });
+      const send = el('button', { type: 'button', className: 'btn primary', textContent: 'Send reply' });
+      const hint = el('span', { className: 'hint', textContent: `Sent by email from support@3vee.app to ${t.email}` });
+      send.addEventListener('click', async () => {
+        if (!ta.value.trim()) return ta.focus();
+        send.disabled = true; send.textContent = 'Sending…';
+        const r = await postSupport(`/admin/support/${t.id}/reply`, { text: ta.value });
+        const res = await r.json().catch(() => ({}));
+        if (r.ok) { renderConvo(res); loadSupport(); }
+        else { hint.textContent = res.error || `Couldn't send (HTTP ${r.status})`; hint.style.color = '#FF6B6B'; send.disabled = false; send.textContent = 'Send reply'; }
+      });
+      box.replaceChildren(head, ...msgs, el('div', { className: 'reply' }, ta, el('div', { className: 'row2' }, hint, send)));
+      box.lastElementChild.scrollIntoView({ block: 'nearest' });
+    }
+
+    // #people, #support, #support/<id>
+    function route() {
+      const [view, id] = location.hash.slice(1).split('/');
+      const support = view === 'support';
+      $('view-support').hidden = !support; $('view-people').hidden = support;
+      $('nav-support').setAttribute('aria-current', support ? 'page' : 'false');
+      $('nav-people').setAttribute('aria-current', support ? 'false' : 'page');
+      if (support && id) openThread(Number(id));
+      else if (support) { current = null; renderThreads(); $('convo').replaceChildren(el('p', { className: 'empty', textContent: 'Pick a conversation on the left.' })); }
+    }
+    window.addEventListener('hashchange', route);
+    route();
+    loadSupport();
+    $('refresh').addEventListener('click', () => { loadSupport(); if (current) openThread(current); });
+
+    $('refresh').addEventListener('click', load);
+    load();
+  </script>
+</body>
+</html>

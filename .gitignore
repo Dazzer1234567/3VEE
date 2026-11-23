@@ -1,0 +1,5 @@
+server/beta.db*
+server/downloads/
+__pycache__/
+server/dev.log
+*.log

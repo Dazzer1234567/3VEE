@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MASTERDAW - BETA</title>
+  <link rel="icon" type="image/svg+xml" href="../pIX/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Qilka';
+      src: url('../comp247/Fonts/qilka/Qilka-Bold.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #FF8A4C; --blue: #29B6F6; --bg: #0A0908; --surface: #111009; --border: #2a2722;
+      --white: #F5F4F0; --muted: #777; --error: #FF5A5A;
+      --r-pill: 9999px 9999px 9999px 0;
+    }
+    body { font-family: 'Kanit', sans-serif; background: var(--bg); color: var(--white); min-height: 100vh; }
+    .container { max-width: 1060px; margin: 0 auto; padding: 70px 56px 80px; }
+    h1 { font-family: 'Qilka', 'Kanit', sans-serif; font-weight: 700; font-size: clamp(28px, 6.4vw, 88px); line-height: 1; letter-spacing: -0.02em; white-space: nowrap; }
+    h1 .master { color: var(--accent); }
+    h1 .daw { color: var(--blue); }
+    .blurb { margin-top: 36px; max-width: 680px; font-size: clamp(18px, 1.8vw, 22px); font-weight: 300; line-height: 1.5; color: #aaa; }
+    .feature-list { list-style: none; margin-top: 32px; max-width: 900px; columns: 2; column-gap: 40px; }
+    .feature-list li { position: relative; padding-left: 22px; margin-bottom: 14px; break-inside: avoid; font-size: 18px; font-weight: 400; line-height: 1.45; color: var(--white); }
+    .feature-list li::before { content: ''; position: absolute; left: 0; top: 0.6em; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    @media (max-width: 700px) { .feature-list { columns: 1; } }
+
+    .faq { margin-top: 48px; max-width: 900px; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); }
+    .faq summary, .q summary { list-style: none; cursor: pointer; padding: 20px 0; font-size: 24px; font-weight: 800; letter-spacing: 0.03em; display: flex; justify-content: space-between; align-items: center; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: '+'; font-size: 30px; font-weight: 400; color: var(--accent); line-height: 1; margin-left: 16px; }
+    .faq[open] > summary::after, .q[open] > summary::after { content: '\2212'; }
+    .faq:not([open]) .q summary::after { content: '+'; }
+    .faq summary:hover { color: var(--accent); }
+    .faq summary:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
+    .faq-body { padding: 0 0 16px; }
+    .q { border-top: 1px solid var(--border); }
+    .q summary { font-size: 18px; font-weight: 600; letter-spacing: 0; padding: 14px 0; }
+    .q summary::after { font-size: 22px; }
+    .q p { font-size: 17px; font-weight: 300; line-height: 1.5; color: #aaa; margin: 0 40px 12px 0; }
+    .q p:last-child, .q ul:last-child { margin-bottom: 18px; }
+    .q h4 { font-size: 16px; font-weight: 600; color: var(--white); margin: 4px 0 4px; }
+    .q ul { list-style: none; margin: 0 40px 14px 0; }
+    .q ul li { position: relative; padding-left: 18px; font-size: 17px; font-weight: 300; line-height: 1.5; color: #aaa; }
+    .q ul li::before { content: ''; position: absolute; left: 2px; top: 0.65em; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+    .platforms { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 48px; }
+    .platform {
+      font-family: 'Kanit', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: 0.03em;
+      color: var(--white); background: transparent; border: 2px solid var(--border);
+      border-radius: var(--r-pill); padding: 22px 32px 26px; min-width: 190px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+      position: relative; line-height: 1.1;
+    }
+    /* sits under the label without moving it, so every label shares one line */
+    .platform small { position: absolute; left: 0; right: 0; top: calc(50% + 0.75em); font-size: 11px; font-weight: 400; letter-spacing: 0.06em; opacity: 0.7; white-space: nowrap; }
+    .platform:hover { border-color: var(--accent); }
+    .platform[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #000; }
+    .platform:focus-visible, .email-row input:focus-visible, .send:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
+
+    .signup-box {
+      width: min(560px, calc(100vw - 32px)); margin: auto; padding: 0;
+      background: var(--surface); color: var(--white); border: 2px solid var(--border); border-radius: 24px;
+    }
+    .signup-box form { padding: 40px 36px 28px; }
+    .signup-box::backdrop { background: rgba(0,0,0,0.7); }
+    .signup-box[open] { animation: pop 0.15s ease-out; }
+    @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .signup-box h2 { font-family: 'Qilka', 'Kanit', sans-serif; font-weight: 700; font-size: 30px; line-height: 1.1; margin: 0 40px 10px 0; }
+    .signup-box h2 span { color: var(--accent); }
+    .signup-box label { display: block; font-size: 15px; font-weight: 300; color: var(--muted); margin-bottom: 18px; }
+    .close {
+      position: absolute; top: 14px; right: 14px; width: 40px; height: 40px; border-radius: 50%;
+      border: none; background: transparent; color: var(--muted); font-size: 28px; line-height: 1; cursor: pointer;
+    }
+    .close:hover { color: var(--white); background: #1c1a16; }
+    .close:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { .signup-box[open] { animation: none; } }
+    .email-row { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+    .email-row > input, .field-optional { width: 100%; }
+    .field-optional { position: relative; }
+    .field-optional input { width: 100%; padding-right: 120px; }
+    .field-optional span { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 400; color: #555; pointer-events: none; }
+    .email-row .send { margin-top: 4px; }
+    .email-row input {
+      min-width: 0; font-family: 'Kanit', sans-serif; font-size: 18px; font-weight: 400;
+      color: var(--white); background: var(--surface); border: 2px solid var(--border);
+      border-radius: 14px; padding: 14px 18px;
+    }
+    .email-row input::placeholder { color: #555; }
+    .email-row input:focus { border-color: var(--accent); outline: none; }
+    .send {
+      font-family: 'Kanit', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: 0.03em;
+      color: #000; background: var(--accent); border: none; border-radius: var(--r-pill);
+      padding: 16px 32px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .send:hover { opacity: 0.88; }
+    .send:disabled { opacity: 0.5; cursor: default; }
+    .message { margin-top: 16px; font-size: 16px; font-weight: 300; min-height: 1.5em; }
+    .message.error { color: var(--error); }
+    .message.ok { color: var(--white); }
+
+    @media (max-width: 900px) {
+      .container { padding: 40px 28px 60px; }
+      .platforms { margin-top: 32px; gap: 10px; }
+      .platform { font-size: 20px; padding: 18px 18px 22px; min-width: 0; flex: 1 1 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span class="master">MASTER</span><span class="daw">DAW</span> - BETA</h1>
+    <div class="platforms" role="group" aria-label="Choose your platform">
+      <button type="button" class="platform" data-platform="windows" data-name="Windows" aria-pressed="false">Windows</button>
+      <button type="button" class="platform" data-platform="mac" data-name="Mac (Apple Silicon)" aria-pressed="false">Mac<small>Apple Silicon</small></button>
+      <button type="button" class="platform" data-platform="linux" data-name="Linux" aria-pressed="false">Linux</button>
+    </div>
+
+    <p class="blurb">MASTERDAW is a modern, powerful DAW, finely tuned to the needs of pro mastering engineers and anyone serious about audio mastering.</p>
+
+    <ul class="feature-list">
+      <li>Node-based plugin routing</li>
+      <li>Object-based effects, with a nested DAW inside each object</li>
+      <li>Mix replace tools for comparing new mixes</li>
+      <li>Automated export workflows</li>
+      <li>Optimised for analog mastering recalls</li>
+      <li>Automated (but optional) file management</li>
+      <li>Master version tracking</li>
+      <li>Unique automation objects</li>
+      <li>MIDI editing &amp; VSTi</li>
+      <li>Anti-RSI interface design</li>
+      <li>AI agent ready (MCP inside)</li>
+      <li>Headless control</li>
+      <li>LUA &amp; Pure Data integrated</li>
+    </ul>
+
+    <details class="faq">
+      <summary>FAQ</summary>
+      <div class="faq-body">
+        <details class="q"><summary>How much will the app cost?</summary>
+        <p>The final price is not yet firm, but it will be around 300 euros. That includes a year of support, new versions and priority on your feature requests. After the first year, updates and support are 100 euros per year, and you can renew at that price whenever you like.</p>
+        <p>If you don't renew, new versions and support stop until you do. The program itself doesn't stop working: you keep the last version you received, and that version keeps getting bug fixes for 2 years. These bug fixes don't cover new hardware or new operating system versions; for those you need the current version.</p>
+        </details>
+        <details class="q"><summary>How long does the beta work?</summary>
+        <p>Each beta version works for one month from its release. New beta versions come out regularly, and each new one works for a month too, so download the latest one and you can keep using the beta until the full release.</p>
+        </details>
+        <!-- Placeholder answers below: "To be written." -->
+        <details class="q"><summary>What are the system requirements?</summary>
+          <h4>Windows</h4>
+          <ul>
+            <li>Windows 10 or 11, 64-bit</li>
+            <li>Any 64-bit Intel or AMD processor</li>
+            <li>An ASIO audio interface is recommended; the built-in audio device also works</li>
+          </ul>
+          <h4>macOS</h4>
+          <ul>
+            <li>A Mac with Apple silicon (M1 or later). Intel Macs are not supported.</li>
+            <li>macOS [version] or later</li>
+            <li>Any Core Audio device</li>
+          </ul>
+          <h4>Linux</h4>
+          <ul>
+            <li>64-bit Ubuntu 24.04 or later, or a similar distribution, with a GTK 3 desktop</li>
+            <li>PipeWire for audio</li>
+          </ul>
+          <h4>All platforms</h4>
+          <ul>
+            <li>8 GB of RAM (16 GB recommended)</li>
+            <li>A screen of 1920×1080 or larger</li>
+            <li>Plugins: VST3, including ARA plugins</li>
+          </ul>
+        </details>
+        <details class="q"><summary>Which plugin formats does it support?</summary><p>To be written.</p></details>
+        <details class="q"><summary>Can it export DDP?</summary><p>To be written.</p></details>
+        <details class="q"><summary>Which file formats and sample rates can it export?</summary><p>To be written.</p></details>
+        <details class="q"><summary>Does it have loudness metering?</summary><p>To be written.</p></details>
+        <details class="q"><summary>What does "object-based effects with a nested DAW" mean?</summary><p>To be written.</p></details>
+        <details class="q"><summary>What are the mix replace tools?</summary><p>To be written.</p></details>
+        <details class="q"><summary>What is headless control used for?</summary>
+          <p>Headless means MASTERDAW can run without its screen interface, controlled by scripts or other programs instead of the mouse. That makes it possible to automate repetitive jobs, such as rendering a batch of masters in every format a client needs, or to run MASTERDAW on a separate machine in the studio and control it from another one.</p>
+        </details>
+        <details class="q"><summary>What can the AI agent (MCP) integration do?</summary>
+          <p>MCP (Model Context Protocol) is an open standard that lets AI assistants, such as Claude or ChatGPT, work with other programs. MASTERDAW has MCP built in, so if you use an AI assistant you can ask it to do things in MASTERDAW for you in plain language, like setting up a session, preparing exports or checking your files.</p>
+          <p>MASTERDAW itself has no AI features built in. MCP is only a connection point, so it's entirely optional, and nothing happens unless you connect an assistant yourself.</p>
+        </details>
+        <details class="q"><summary>Will my beta projects open in the full version?</summary><p>To be written.</p></details>
+        <details class="q"><summary>How many computers can I install it on?</summary><p>To be written.</p></details>
+        <details class="q"><summary>Does it need an internet connection or online activation?</summary><p>To be written.</p></details>
+        <details class="q"><summary>When is the full release?</summary><p>To be written.</p></details>
+        <details class="q"><summary>Who makes MASTERDAW?</summary><p>To be written.</p></details>
+      </div>
+    </details>
+
+  </div>
+
+  <dialog class="signup-box" id="box" aria-labelledby="box-title">
+    <button type="button" class="close" id="close" aria-label="Close">&times;</button>
+    <form id="signup" novalidate>
+      <h2 id="box-title">Download for <span id="chosen">Windows</span></h2>
+      <label for="email">Enter your email and we'll send you the <span id="full">Windows</span> download link.</label>
+      <div class="email-row">
+        <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required>
+        <div class="field-optional">
+          <input type="text" id="name" name="name" placeholder="Name" autocomplete="name" maxlength="100" aria-describedby="name-optional">
+          <span id="name-optional">Optional</span>
+        </div>
+        <button type="submit" class="send" id="send">Send download link</button>
+      </div>
+      <p class="message" id="message" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+
+  <script>
+    const buttons = document.querySelectorAll('.platform');
+    const box = document.getElementById('box');
+    const form = document.getElementById('signup');
+    const email = document.getElementById('email');
+    const send = document.getElementById('send');
+    const chosen = document.getElementById('chosen');
+    const message = document.getElementById('message');
+    let platform = null;
+
+    function say(text, kind) { message.textContent = text; message.className = 'message ' + (kind || ''); }
+
+    buttons.forEach(b => b.addEventListener('click', () => {
+      platform = b.dataset.platform;
+      buttons.forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+      chosen.textContent = b.firstChild.textContent;
+      document.getElementById('full').textContent = b.dataset.name;
+      say('');
+      box.showModal();
+      email.focus();
+    }));
+
+    // Close: the x, the Escape key (built into <dialog>), or a click on the dimmed area outside.
+    document.getElementById('close').addEventListener('click', () => box.close());
+    box.addEventListener('click', e => { if (e.target === box) box.close(); });
+    box.addEventListener('close', () => {
+      platform = null;
+      buttons.forEach(o => o.setAttribute('aria-pressed', 'false'));
+    });
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const address = email.value.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) return say("That email address doesn't look right.", 'error');
+      send.disabled = true;
+      say('Sending…');
+      try {
+        const r = await fetch('/api/beta/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: address, name: document.getElementById('name').value.trim(), platform })
+        });
+        const body = await r.json().catch(() => ({}));
+        if (r.ok) say(`Check your inbox — the ${document.getElementById('full').textContent} download link is on its way to ${address}.`, 'ok');
+        else say(body.error || 'Something went wrong. Try again in a minute.', 'error');
+      } catch {
+        say("Couldn't reach the server. Check your connection and try again.", 'error');
+      } finally {
+        send.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

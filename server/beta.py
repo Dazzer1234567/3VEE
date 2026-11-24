@@ -12,7 +12,9 @@ Public (nginx proxies /api/, /login/ and /download/ here):
     GET  /api/account       -> the signed-in person's details and the available builds (401 if not signed in)
     POST /api/account/download/<platform> -> the newest build for that platform (signed in)
     POST /api/logout
-    POST /api/support       {"subject"?, "message"} -> a message to support (signed in)
+    POST /api/support       {"subject"?, "message", "thread_id"?, "files"?} -> a message to support (signed in)
+    GET  /api/support       -> the signed-in person's conversations
+    GET  /api/support/attachment/<id> -> a file from one of their own conversations
     POST /api/inbound-email -> an email to support@, from the Cloudflare Email Worker (Bearer secret)
     GET/POST /download/<token> -> old personal download links emailed before accounts existed
                                (page with a Download button; each link works MAX_USES times)
@@ -25,11 +27,13 @@ firewall only opens it on the tailscale0 interface):
     GET  /admin/export.zip  -> everything: people.csv, signups.csv, downloads.csv, beta.db, README.txt
     POST /admin/delete      {"emails": [...]} -> removes those people completely
     GET  /admin/support.json, /admin/support/<id>.json, /admin/support/attachment/<id>
-    POST /admin/support/<id>/reply {"text"}, /admin/support/<id>/status {"status": "open"|"closed"}
+    POST /admin/support/<id>/reply {"text", "files"?}, /admin/support/<id>/status {"status": "open"|"closed"}
 
 Support inbox: a Cloudflare Email Worker POSTs each email sent to support@ (raw, with a shared secret)
 to /api/inbound-email; the account page's Support tab POSTs to /api/support. Both land in the same
-conversations, and each new message sends a short notification to ADMIN_NOTIFY.
+conversations, and each new message sends a short notification to ADMIN_NOTIFY. Files travel as
+"files": [{"name", "type", "data" (base64)}]; attachments in emails (including the owner's replies by
+email) are kept too, and our replies email them to the customer.
 
 Standard library only. nginx serves the build files itself via X-Accel-Redirect. Locally,
 `python server/beta.py --static .` also serves the site, so the whole flow can be tried at
@@ -80,6 +84,9 @@ ADMIN_URL = os.environ.get("ADMIN_URL", "http://vultr-3vee.tailba9a89.ts.net:876
 SUPPORT_DIR = Path(os.environ.get("BETA_SUPPORT_DIR", DB_PATH.parent / "support"))
 MAX_INBOUND_BYTES = 30 * 1024 * 1024      # whole email, as sent by the Worker
 MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024   # each attachment; bigger ones are listed but not stored
+MAX_UPLOAD_FILES = 5                      # files per message sent from the account or admin page
+MAX_UPLOAD_TOTAL = 25 * 1024 * 1024       # all files of one such message together
+MAX_UPLOAD_REQUEST = MAX_UPLOAD_TOTAL * 4 // 3 + 200_000   # the same, base64 in JSON, plus the text
 
 SMTP_HOST = os.environ.get("SMTP_HOST", "")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
@@ -283,7 +290,7 @@ def newest_file(platform):
 
 # --- email ---------------------------------------------------------------------------------------
 
-def send_mail(to, subject, body, headers=None):
+def send_mail(to, subject, body, headers=None, attachments=()):
     msg = EmailMessage()
     msg["From"] = MAIL_FROM
     msg["To"] = to
@@ -292,6 +299,9 @@ def send_mail(to, subject, body, headers=None):
         if v:
             msg[k] = v
     msg.set_content(body)
+    for filename, ctype, data in attachments:
+        maintype, _, subtype = (ctype if re.fullmatch(r"[\w.+-]+/[\w.+-]+", ctype or "") else "application/octet-stream").partition("/")
+        msg.add_attachment(data, maintype=maintype, subtype=subtype, filename=filename)
     if not SMTP_HOST:
         print("---- email (not sent: no SMTP_HOST) ----\n" + msg.as_string(), flush=True)
         return
@@ -450,8 +460,19 @@ def store_message(con, *, email, name, subject, body, source, message_id=None, r
     full = redact(body_full) if body_full and redact(body_full) != body else None
     mid = con.execute("INSERT INTO support_messages(thread_id, direction, source, from_addr, subject, body, body_full, message_id, created)"
                       " VALUES (?,?,?,?,?,?,?,?,?)", (tid, "in", source, email, subject, body, full, message_id, now)).lastrowid
+    save_attachments(con, mid, attachments)
+    return tid, mid
+
+
+def safe_filename(filename):
+    return re.sub(r"[^A-Za-z0-9._ -]", "_", filename or "")[:120].strip(". ") or "attachment"
+
+
+def save_attachments(con, mid, attachments):
+    """Keep a message's files on disk (too-big ones are only listed). Returns the ones kept."""
+    kept = []
     for filename, ctype, data in attachments:
-        safe = re.sub(r"[^A-Za-z0-9._ -]", "_", filename)[:120].strip(". ") or "attachment"
+        safe = safe_filename(filename)
         path = None
         if len(data) <= MAX_ATTACHMENT_BYTES:
             folder = SUPPORT_DIR / str(mid)
@@ -459,9 +480,39 @@ def store_message(con, *, email, name, subject, body, source, message_id=None, r
             target = folder / f"{secrets.token_hex(4)}-{safe}"
             target.write_bytes(data)
             path = str(target)
+            kept.append((safe, ctype, data))
         con.execute("INSERT INTO support_attachments(message_id, filename, content_type, size, path) VALUES (?,?,?,?,?)",
                     (mid, safe, ctype, len(data), path))
-    return tid, mid
+    return kept
+
+
+def decode_uploads(files):
+    """Files sent from the account or admin page: [{"name", "type", "data" (base64)}] -> [(name, type, bytes)].
+
+    Raises ValueError with a message for the person when something is wrong."""
+    import base64
+    import binascii
+    if not files:
+        return []
+    if not isinstance(files, list) or len(files) > MAX_UPLOAD_FILES:
+        raise ValueError(f"You can attach up to {MAX_UPLOAD_FILES} files.")
+    out, total = [], 0
+    for f in files:
+        if not isinstance(f, dict):
+            raise ValueError("bad request")
+        try:
+            data = base64.b64decode(str(f.get("data") or ""), validate=True)
+        except (binascii.Error, ValueError):
+            raise ValueError("A file couldn't be read. Please try again.") from None
+        name = safe_filename(str(f.get("name") or ""))
+        if len(data) > MAX_ATTACHMENT_BYTES:
+            raise ValueError(f"{name} is too big: each file can be up to {MAX_ATTACHMENT_BYTES // 1024 // 1024} MB.")
+        total += len(data)
+        ctype = str(f.get("type") or "")[:100]
+        out.append((name, ctype if re.fullmatch(r"[\w.+-]+/[\w.+-]+", ctype) else "application/octet-stream", data))
+    if total > MAX_UPLOAD_TOTAL:
+        raise ValueError(f"The files are too big together: up to {MAX_UPLOAD_TOTAL // 1024 // 1024} MB per message.")
+    return out
 
 
 def thread_code(tid):
@@ -478,27 +529,34 @@ def thread_code(tid):
 THREAD_CODE_RE = re.compile(r"\[#(\d+)-([0-9a-f]{8})\]")
 
 
-def notify_admin(tid, who, subject, body):
-    """Short heads-up to the owner's normal inbox. Replying to it answers the customer (see inbound_email)."""
+def notify_admin(tid, who, subject, body, attachments=()):
+    """Short heads-up to the owner's normal inbox, with the customer's files attached.
+    Replying to it answers the customer (see inbound_email)."""
     if not ADMIN_NOTIFY:
         return
     preview = body.strip()
     if len(preview) > 1500:
         preview = preview[:1500].rstrip() + "…"
+    files = [(safe_filename(n), c, d) for n, c, d in attachments if len(d) <= MAX_ATTACHMENT_BYTES]
+    if sum(len(d) for _, _, d in files) > MAX_UPLOAD_TOTAL:  # keep the notification deliverable
+        files = []
+    names = ", ".join(safe_filename(a[0]) for a in attachments)
+    note = (f"Attachments: {names}" + ("" if len(files) == len(attachments) else " (download them from the admin page)") + "\n\n"
+            if attachments else "")
     try:
         send_mail(ADMIN_NOTIFY, f"[#{thread_code(tid)}] {who}: {subject or '(no subject)'}"[:200],
-                  f"{who} wrote:\n\n{preview}\n\n"
+                  f"{who} wrote:\n\n{preview}\n\n{note}"
                   "———\n"
                   "Reply to this email to answer them: your reply is sent from support@3vee.app and saved in the conversation.\n"
                   "Keep the [#…] code in the subject line, it tells the server which conversation it belongs to.\n"
                   f"Or answer in the admin page: {ADMIN_URL}#support/{tid}\n",
-                  {"Auto-Submitted": "auto-generated"})
+                  {"Auto-Submitted": "auto-generated"}, files)
     except Exception as e:  # noqa: BLE001 - a failed notification must not lose the message
         sys.stderr.write(f"admin notification failed: {e!r}\n")
 
 
-def send_reply(tid, text):
-    """Email our reply to the customer from support@, continuing their thread, and store it."""
+def send_reply(tid, text, attachments=()):
+    """Email our reply (and any files) to the customer from support@, continuing their thread, and store it."""
     from email.utils import make_msgid
 
     with _db_lock, db() as con:
@@ -509,12 +567,14 @@ def send_reply(tid, text):
                                          (tid,))]
     subject = t["subject"] if (t["subject"] or "").lower().startswith("re:") else f"Re: {t['subject']}"
     msgid = make_msgid(domain=urlsplit(BASE_URL).hostname or "3vee.app")
+    files = [(safe_filename(n), c, d) for n, c, d in attachments if len(d) <= MAX_ATTACHMENT_BYTES]
     send_mail(t["email"], subject, text, {"Message-ID": msgid, "In-Reply-To": ids[-1] if ids else None,
-                                          "References": " ".join(ids[-10:]) or None})
+                                          "References": " ".join(ids[-10:]) or None}, files)
     now = int(time.time())
     with _db_lock, db() as con:
-        con.execute("INSERT INTO support_messages(thread_id, direction, source, from_addr, subject, body, message_id, created)"
-                    " VALUES (?,?,?,?,?,?,?,?)", (tid, "out", "admin", MAIL_FROM, subject, text, msgid, now))
+        mid = con.execute("INSERT INTO support_messages(thread_id, direction, source, from_addr, subject, body, message_id, created)"
+                          " VALUES (?,?,?,?,?,?,?,?)", (tid, "out", "admin", MAIL_FROM, subject, text, msgid, now)).lastrowid
+        save_attachments(con, mid, files)
         con.execute("UPDATE support_threads SET unread=0, updated=? WHERE id=?", (now, tid))
     return msgid
 
@@ -643,6 +703,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.account()
         if path == "/api/support":
             return self.support_conversations()
+        if path.startswith("/api/support/attachment/"):
+            return self.my_attachment(path.rsplit("/", 1)[-1])
         if path.startswith("/download/"):
             return self.link_download(path[len("/download/"):])
         if path == "/api/health":
@@ -801,9 +863,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200, {"ok": True, "stored": False})
             text = m["body"]
             if not text or text.startswith("(No new text"):
+                text = ""
+            if not text and not m["attachments"]:
                 return self.send_json(200, {"ok": True, "stored": False})
             try:
-                if not send_reply(tid, text):
+                if not send_reply(tid, text, m["attachments"]):
                     raise LookupError("conversation not found (deleted?)")
             except Exception as e:  # noqa: BLE001 - tell the owner instead of failing silently
                 sys.stderr.write(f"admin email reply for thread {tid} failed: {e!r}\n")
@@ -822,7 +886,7 @@ class Handler(BaseHTTPRequestHandler):
             tid, _ = store_message(con, email=m["email"], name=m["name"], subject=m["subject"], body=m["body"], body_full=m["body_full"],
                                    source="email", message_id=m["message_id"], refs=m["refs"], attachments=m["attachments"])
         if not m["auto"]:
-            notify_admin(tid, m["name"] or m["email"], m["subject"], m["body"])
+            notify_admin(tid, m["name"] or m["email"], m["subject"], m["body"], m["attachments"])
         return self.send_json(200, {"ok": True, "stored": True})
 
     def support_form(self):
@@ -833,13 +897,17 @@ class Handler(BaseHTTPRequestHandler):
         if not user:
             return self.send_json(401, {"error": "Please sign in again."})
         try:
-            body = self.read_json(limit=60_000)
+            body = self.read_json(limit=MAX_UPLOAD_REQUEST)
             subject = " ".join(str(body.get("subject") or "").split())[:200]
             message = str(body.get("message") or "").strip()[:20_000]
             thread_id = int(body["thread_id"]) if body.get("thread_id") else None
         except (ValueError, TypeError, json.JSONDecodeError):
-            return self.send_json(400, {"error": "bad request"})
-        if len(message) < 2:
+            return self.send_json(400, {"error": "Couldn't send that (are the files too big?)."})
+        try:
+            files = decode_uploads(body.get("files"))
+        except ValueError as e:
+            return self.send_json(400, {"error": str(e)})
+        if len(message) < 2 and not files:
             return self.send_json(400, {"error": "Please write a message."})
         now = int(time.time())
         with _db_lock, db() as con:
@@ -853,13 +921,14 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send_json(404, {"error": "Conversation not found."})
                 subject = t["subject"]
                 tid, _ = store_message(con, email=user["email"], name=user["name"], subject=subject, body=message,
-                                       source="form", thread_id=thread_id)
+                                       source="form", thread_id=thread_id, attachments=files)
             else:
                 platform = PLATFORMS.get(user["platform"] or "", "")
                 subject = subject or "Message from the account page"
                 tid, _ = store_message(con, email=user["email"], name=user["name"], subject=subject,
-                                       body=message + (f"\n\n(Platform: {platform})" if platform else ""), source="form")
-        notify_admin(tid, user["name"] or user["email"], subject, message)
+                                       body=message + (f"\n\n(Platform: {platform})" if platform else ""), source="form",
+                                       attachments=files)
+        notify_admin(tid, user["name"] or user["email"], subject, message, files)
         return self.send_json(200, {"ok": True, "conversations": self.my_conversations(user)})
 
     def my_conversations(self, user):
@@ -868,12 +937,41 @@ class Handler(BaseHTTPRequestHandler):
             threads = [dict(t) for t in con.execute(
                 "SELECT id, subject, status, created, updated FROM support_threads WHERE email=? ORDER BY updated DESC", (user["email"],))]
             for t in threads:
-                t["messages"] = [{**dict(m), "body": re.sub(r"\n\n\(Platform: [^)]*\)$", "", m["body"] or "")} for m in con.execute(
-                    "SELECT direction, source, body, created FROM support_messages WHERE thread_id=? ORDER BY id", (t["id"],))]
-                t["attachments"] = [r[0] for r in con.execute(
-                    """SELECT a.filename FROM support_attachments a JOIN support_messages m ON m.id = a.message_id
-                       WHERE m.thread_id=? ORDER BY a.id""", (t["id"],))]
+                atts = {}
+                for a in con.execute("""SELECT a.id, a.message_id, a.filename, a.size, a.path IS NOT NULL AS kept
+                                        FROM support_attachments a JOIN support_messages m ON m.id = a.message_id
+                                        WHERE m.thread_id=? ORDER BY a.id""", (t["id"],)):
+                    atts.setdefault(a["message_id"], []).append({k: a[k] for k in ("id", "filename", "size", "kept")})
+                t["messages"] = [{"direction": m["direction"], "source": m["source"], "created": m["created"],
+                                  "body": re.sub(r"\n\n\(Platform: [^)]*\)$", "", m["body"] or ""),
+                                  "attachments": atts.get(m["id"], [])} for m in con.execute(
+                    "SELECT id, direction, source, body, created FROM support_messages WHERE thread_id=? ORDER BY id", (t["id"],))]
         return threads
+
+    def my_attachment(self, aid):
+        """A file from one of the signed-in person's own conversations (always a download, never shown inline)."""
+        user = self.current_user()
+        if not user:
+            return self.send_text(401, "Please sign in again.")
+        if not aid.isdigit():
+            return self.send_text(404, "Not found")
+        with _db_lock, db() as con:
+            a = con.execute("""SELECT a.filename, a.path FROM support_attachments a JOIN support_messages m ON m.id = a.message_id
+                               JOIN support_threads t ON t.id = m.thread_id WHERE a.id=? AND t.email=?""",
+                            (int(aid), user["email"])).fetchone()
+        if not a or not a["path"] or not Path(a["path"]).is_file():
+            return self.send_text(404, "Not found")
+        path = Path(a["path"])
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Disposition", f'attachment; filename="{safe_filename(a["filename"])}"')
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Cache-Control", "private, no-store")
+        self.send_header("Content-Length", str(path.stat().st_size))
+        self.end_headers()
+        with path.open("rb") as fh:
+            while chunk := fh.read(1 << 16):
+                self.wfile.write(chunk)
 
     def support_conversations(self):
         user = self.current_user()
@@ -1198,7 +1296,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.send_json(403, {"error": "forbidden"})
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if length > 100_000:
+            if length > MAX_UPLOAD_REQUEST:
                 raise ValueError
             body = json.loads(self.rfile.read(length) or b"{}")
             if not isinstance(body, dict):
@@ -1215,10 +1313,14 @@ class AdminHandler(BaseHTTPRequestHandler):
             tid = int(m.group(1))
             if m.group(2) == "reply":
                 text = str(body.get("text") or "").strip()
-                if not text:
+                try:
+                    files = decode_uploads(body.get("files"))
+                except ValueError as e:
+                    return self.send_json(400, {"error": str(e)})
+                if not text and not files:
                     return self.send_json(400, {"error": "Write a reply first."})
                 try:
-                    if not send_reply(tid, text[:50_000]):
+                    if not send_reply(tid, text[:50_000], files):
                         return self.send_json(404, {"error": "not found"})
                 except Exception as e:  # noqa: BLE001
                     sys.stderr.write(f"support reply failed: {e!r}\n")

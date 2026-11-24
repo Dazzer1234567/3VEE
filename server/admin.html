@@ -126,6 +126,18 @@
     .reply textarea:focus { outline: none; border-color: var(--accent); }
     .reply .row2 { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
     .reply .hint { font-size: 13px; color: var(--muted); }
+    .attach { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+    .attach-btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; color: var(--text-2); background: none;
+                  border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+    .attach-btn:hover { color: var(--text); border-color: var(--muted); }
+    .attach-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); background: #1d1b17;
+            border: 1px solid var(--border); border-radius: 999px; padding: 3px 6px 3px 12px; max-width: 100%; }
+    .chip .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
+    .chip .s { color: var(--muted); }
+    .chip button { background: none; border: none; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 4px; }
+    .chip button:hover { color: var(--text); }
+    .attach .err { font-size: 13px; color: #FF6B6B; }
     .btn.primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
     @media (max-width: 860px) { .inbox { grid-template-columns: 1fr; } .msg { max-width: 100%; } }
 
@@ -447,6 +459,52 @@
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Action': 'support' }, body: JSON.stringify(body),
     });
 
+    // attach files to a reply (up to 5, 15 MB each, 25 MB together); pasting a screenshot into the box adds it too
+    const MAX_FILES = 5, MAX_FILE = 15 * 1024 * 1024, MAX_TOTAL = 25 * 1024 * 1024;
+    const kb = b => b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+    function filePicker(pasteTarget) {
+      let files = [];
+      const input = el('input', { type: 'file', multiple: true, hidden: true });
+      const btn = el('button', { type: 'button', className: 'attach-btn',
+        innerHTML: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg><span>Attach files</span>' });
+      const err = el('span', { className: 'err', role: 'alert' });
+      const chips = el('span', { className: 'attach', style: 'margin:0' });
+      const wrap = el('div', { className: 'attach' }, input, btn, chips, err);
+      function add(list) {
+        err.textContent = '';
+        for (const f of list) {
+          if (files.length >= MAX_FILES) { err.textContent = `Up to ${MAX_FILES} files per reply.`; break; }
+          if (f.size > MAX_FILE) { err.textContent = `${f.name} is too big (up to 15 MB per file).`; continue; }
+          if (files.reduce((a, x) => a + x.size, 0) + f.size > MAX_TOTAL) { err.textContent = 'Up to 25 MB per reply in total.'; continue; }
+          files.push(f);
+        }
+        draw();
+      }
+      function draw() {
+        chips.replaceChildren(...files.map((f, i) => {
+          const x = el('button', { type: 'button', textContent: '×', ariaLabel: `Remove ${f.name}` });
+          x.addEventListener('click', () => { files.splice(i, 1); err.textContent = ''; draw(); });
+          return el('span', { className: 'chip' }, el('span', { className: 'n', textContent: f.name, title: f.name }),
+                    el('span', { className: 's', textContent: kb(f.size) }), x);
+        }));
+      }
+      btn.addEventListener('click', () => input.click());
+      input.addEventListener('change', () => { add(input.files); input.value = ''; });
+      pasteTarget.addEventListener('paste', e => {
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+        const pasted = [...(e.clipboardData?.files || [])].map((f, i) =>
+          f.name && f.name !== 'image.png' ? f : new File([f], `screenshot-${stamp}${i ? '-' + i : ''}.png`, { type: f.type }));
+        if (pasted.length) { e.preventDefault(); add(pasted); }
+      });
+      const read = f => new Promise((ok, fail) => {
+        const r = new FileReader();
+        r.onload = () => ok({ name: f.name, type: f.type, data: String(r.result).split(',', 2)[1] || '' });
+        r.onerror = () => fail(r.error);
+        r.readAsDataURL(f);
+      });
+      return { el: wrap, count: () => files.length, encode: () => Promise.all(files.map(read)) };
+    }
+
     async function loadSupport() {
       try {
         const r = await fetch('/admin/support.json', { cache: 'no-store' });
@@ -496,7 +554,7 @@
         toggle);
       const msgs = d.messages.map(m => el('div', { className: 'msg' + (m.direction === 'out' ? ' out' : '') },
         el('div', { className: 'meta', textContent: `${m.direction === 'out' ? 'You replied' : (m.source === 'form' ? 'Via the account page' : 'By email')} · ${fmt(m.created)}` }),
-        el('div', { className: 'text', textContent: m.body || '' }),
+        ...(m.body ? [el('div', { className: 'text', textContent: m.body })] : []),
         ...(m.body_full ? [(() => {   // the quoted earlier email, hidden unless asked for
           const full = el('div', { className: 'text quoted', textContent: m.body_full, hidden: true });
           const link = el('button', { type: 'button', className: 'show-quoted', textContent: 'Show quoted text' });
@@ -504,20 +562,24 @@
           return el('div', {}, link, full);
         })()] : []),
         ...(m.attachments.length ? [el('div', { className: 'atts' }, ...m.attachments.map(x => x.kept
-          ? el('a', { href: `/admin/support/attachment/${x.id}`, textContent: `📎 ${x.filename} (${Math.max(1, Math.round(x.size / 1024))} KB)` })
+          ? el('a', { href: `/admin/support/attachment/${x.id}`, textContent: `📎 ${x.filename} (${kb(x.size)})` })
           : el('span', { textContent: `📎 ${x.filename} (too big to keep)` })))] : [])));
       const ta = el('textarea', { placeholder: `Reply to ${t.name || t.email}…`, ariaLabel: 'Your reply' });
+      const picker = filePicker(ta);
       const send = el('button', { type: 'button', className: 'btn primary', textContent: 'Send reply' });
       const hint = el('span', { className: 'hint', textContent: `Sent by email from support@3vee.app to ${t.email}` });
       send.addEventListener('click', async () => {
-        if (!ta.value.trim()) return ta.focus();
+        if (!ta.value.trim() && !picker.count()) return ta.focus();
         send.disabled = true; send.textContent = 'Sending…';
-        const r = await postSupport(`/admin/support/${t.id}/reply`, { text: ta.value });
-        const res = await r.json().catch(() => ({}));
+        let r, res = {};
+        try {
+          r = await postSupport(`/admin/support/${t.id}/reply`, { text: ta.value, files: await picker.encode() });
+          res = await r.json().catch(() => ({}));
+        } catch { r = { ok: false, status: 0 }; res = { error: "Couldn't reach the server." }; }
         if (r.ok) { renderConvo(res); loadSupport(); }
         else { hint.textContent = res.error || `Couldn't send (HTTP ${r.status})`; hint.style.color = '#FF6B6B'; send.disabled = false; send.textContent = 'Send reply'; }
       });
-      box.replaceChildren(head, ...msgs, el('div', { className: 'reply' }, ta, el('div', { className: 'row2' }, hint, send)));
+      box.replaceChildren(head, ...msgs, el('div', { className: 'reply' }, ta, picker.el, el('div', { className: 'row2' }, hint, send)));
       box.lastElementChild.scrollIntoView({ block: 'nearest' });
     }
 

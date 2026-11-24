@@ -81,11 +81,29 @@
     .bubble .who { font-size: 12px; color: #5b5a55; margin-bottom: 3px; }
     .bubble.mine .who { color: #3f5c38; }
     .bubble .text { white-space: pre-wrap; word-wrap: break-word; font-size: 15px; font-weight: 400; line-height: 1.5; color: #161512; }
-    .convo .atts { font-size: 13px; color: var(--muted); margin-top: 10px; }
+    .bubble .files { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+    .bubble .files a, .bubble .files span { font-size: 14px; color: #1d3f6e; text-decoration: none; word-break: break-all; }
+    .bubble .files a:hover { text-decoration: underline; }
+    .bubble .files span { color: #5b5a55; }
+    /* attach files: paperclip button + chips */
+    .attach { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .attach-btn { display: inline-flex; align-items: center; gap: 6px; font-family: 'Kanit', sans-serif; font-size: 14px; font-weight: 400;
+                  color: var(--text-2); background: none; border: 2px solid var(--border); border-radius: 9999px; padding: 6px 14px; cursor: pointer; }
+    .attach-btn:hover { color: var(--white); border-color: var(--muted); }
+    .attach-btn:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+    .attach-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--white); background: #1d1b17;
+            border: 1px solid var(--border); border-radius: 9999px; padding: 4px 6px 4px 12px; max-width: 100%; }
+    .chip .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+    .chip .s { color: var(--muted); }
+    .chip button { background: none; border: none; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 4px; border-radius: 50%; }
+    .chip button:hover { color: var(--white); }
+    .attach .err { font-size: 13px; color: #ff6b6b; }
     .convo textarea { width: 100%; min-height: 90px; margin-top: 14px; resize: vertical; font-family: 'Kanit', sans-serif; font-size: 15px; font-weight: 300;
                       color: var(--white); background: #0d0c0a; border: 2px solid var(--border); border-radius: 12px; padding: 10px 14px; }
     .convo textarea:focus { border-color: var(--accent); outline: none; }
-    .convo .row3 { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 8px; }
+    .convo .row3 { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+    .convo .row3 > .attach { margin-right: auto; }
     .convo .row3 .btn { padding: 11px 22px; font-size: 15px; }
     .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 24px; }
     .card { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; padding: 22px 22px 24px;
@@ -171,6 +189,7 @@
           <form class="ask" id="ask" novalidate>
             <input type="text" id="ask-subject" maxlength="200" placeholder="Subject (optional)" aria-label="Subject">
             <textarea id="ask-message" maxlength="20000" placeholder="What's happening? Mention your platform, the MASTERDAW version, and the steps that lead to the problem." aria-label="Your message" required></textarea>
+            <div id="ask-attach"></div>
             <div class="ask-row">
               <span class="hint">We'll reply by email to <strong id="ask-email"></strong>.</span>
               <button type="submit" class="btn" id="ask-send">Send message</button>
@@ -184,7 +203,7 @@
           <div class="cards">
             <div class="card">
               <h3>Prefer email?</h3>
-              <p>Write to <strong>support@3vee.app</strong>, for example to send screenshots or files. It arrives in the same place.</p>
+              <p>Write to <strong>support@3vee.app</strong> from your own mail program. It arrives in the same place.</p>
               <a class="btn" id="mail-support" href="mailto:support@3vee.app">Email support</a>
             </div>
             <div class="card">
@@ -285,16 +304,70 @@
       finally { $('send').disabled = false; }
     });
 
+    // --- attach files (up to 5, 15 MB each, 25 MB together); pasting a screenshot into the text box adds it too ---
+    const MAX_FILES = 5, MAX_FILE = 15 * 1024 * 1024, MAX_TOTAL = 25 * 1024 * 1024;
+    const CLIP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg>';
+    function filePicker(pasteTarget) {
+      let files = [];
+      const input = el('input', { type: 'file', multiple: true, hidden: true });
+      const btn = el('button', { type: 'button', className: 'attach-btn', innerHTML: CLIP + '<span>Attach files</span>' });
+      const err = el('span', { className: 'err', role: 'alert' });
+      const chips = el('span', { className: 'attach' });
+      const wrap = el('div', { className: 'attach' }, input, btn, chips, err);
+      function add(list) {
+        err.textContent = '';
+        for (const f of list) {
+          if (files.length >= MAX_FILES) { err.textContent = `Up to ${MAX_FILES} files per message.`; break; }
+          if (f.size > MAX_FILE) { err.textContent = `${f.name} is too big (up to 15 MB per file).`; continue; }
+          if (files.reduce((a, x) => a + x.size, 0) + f.size > MAX_TOTAL) { err.textContent = 'Up to 25 MB per message in total.'; continue; }
+          files.push(f);
+        }
+        draw();
+      }
+      function draw() {
+        chips.replaceChildren(...files.map((f, i) => {
+          const x = el('button', { type: 'button', textContent: '×', ariaLabel: `Remove ${f.name}` });
+          x.addEventListener('click', () => { files.splice(i, 1); err.textContent = ''; draw(); btn.focus(); });
+          return el('span', { className: 'chip' }, el('span', { className: 'n', textContent: f.name, title: f.name }),
+                    el('span', { className: 's', textContent: size(f.size) }), x);
+        }));
+      }
+      btn.addEventListener('click', () => input.click());
+      input.addEventListener('change', () => { add(input.files); input.value = ''; });
+      if (pasteTarget) pasteTarget.addEventListener('paste', e => {
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+        const pasted = [...(e.clipboardData?.files || [])].map((f, i) =>
+          f.name && f.name !== 'image.png' ? f : new File([f], `screenshot-${stamp}${i ? '-' + i : ''}.png`, { type: f.type }));
+        if (pasted.length) { e.preventDefault(); add(pasted); }
+      });
+      const read = f => new Promise((ok, fail) => {
+        const r = new FileReader();
+        r.onload = () => ok({ name: f.name, type: f.type, data: String(r.result).split(',', 2)[1] || '' });
+        r.onerror = () => fail(r.error);
+        r.readAsDataURL(f);
+      });
+      return { el: wrap, count: () => files.length, encode: () => Promise.all(files.map(read)), clear: () => { files = []; err.textContent = ''; draw(); } };
+    }
+    function fileLinks(atts) {
+      return el('div', { className: 'files' }, ...atts.map(a => a.kept
+        ? el('a', { href: `/api/support/attachment/${a.id}`, download: a.filename, textContent: `📎 ${a.filename} (${size(a.size)})` })
+        : el('span', { textContent: `📎 ${a.filename} (too big to keep)` })));
+    }
+
+    const askFiles = filePicker($('ask-message'));
+    $('ask-attach').append(askFiles.el);
+
     $('ask').addEventListener('submit', async e => {
       e.preventDefault();
       const st = $('ask-status'), message = $('ask-message').value.trim();
-      if (message.length < 2) { st.className = 'message error'; st.textContent = 'Please write a message.'; $('ask-message').focus(); return; }
-      $('ask-send').disabled = true; st.className = 'message'; st.textContent = 'Sending…';
+      if (message.length < 2 && !askFiles.count()) { st.className = 'message error'; st.textContent = 'Please write a message.'; $('ask-message').focus(); return; }
+      $('ask-send').disabled = true; st.className = 'message'; st.textContent = askFiles.count() ? 'Uploading…' : 'Sending…';
       try {
+        const files = await askFiles.encode();
         const r = await fetch('/api/support', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ subject: $('ask-subject').value.trim(), message }) });
+                                                body: JSON.stringify({ subject: $('ask-subject').value.trim(), message, files }) });
         const body = await r.json().catch(() => ({}));
-        if (r.ok) { st.className = 'message ok'; st.textContent = "Thanks, we've got your message. We'll reply by email, and you'll see it here too."; $('ask').reset(); renderConvos(body.conversations); }
+        if (r.ok) { st.className = 'message ok'; st.textContent = "Thanks, we've got your message. We'll reply by email, and you'll see it here too."; $('ask').reset(); askFiles.clear(); renderConvos(body.conversations); }
         else { st.className = 'message error'; st.textContent = body.error || 'Something went wrong. Try again in a minute.'; if (r.status === 401) show('signed-out'); }
       } catch { st.className = 'message error'; st.textContent = "Couldn't reach the server. Check your connection and try again."; }
       finally { $('ask-send').disabled = false; }
@@ -314,24 +387,26 @@
         d.addEventListener('toggle', () => d.open ? openConvos.add(c.id) : openConvos.delete(c.id));
         const body = el('div', { className: 'convo-body' }, ...c.messages.map(m => el('div', { className: 'bubble' + (m.direction === 'in' ? ' mine' : '') },
           el('div', { className: 'who', textContent: `${m.direction === 'out' ? 'MASTERDAW support' : 'You'} · ${when(m.created)}` }),
-          el('div', { className: 'text', textContent: m.body || '' }))));
-        if (c.attachments.length) body.append(el('p', { className: 'atts', textContent: `Attachments: ${c.attachments.join(', ')}` }));
+          ...(m.body ? [el('div', { className: 'text', textContent: m.body })] : []),
+          ...(m.attachments.length ? [fileLinks(m.attachments)] : []))));
         const ta = el('textarea', { placeholder: 'Write a reply…', ariaLabel: `Reply to "${c.subject}"`, maxLength: 20000 });
+        const picker = filePicker(ta);
         const st = el('span', { className: 'message', role: 'status' });
         const send = el('button', { type: 'button', className: 'btn', textContent: 'Send reply' });
         send.addEventListener('click', async () => {
           const message = ta.value.trim();
-          if (message.length < 2) return ta.focus();
-          send.disabled = true; st.className = 'message'; st.textContent = 'Sending…';
+          if (message.length < 2 && !picker.count()) return ta.focus();
+          send.disabled = true; st.className = 'message'; st.textContent = picker.count() ? 'Uploading…' : 'Sending…';
           try {
+            const files = await picker.encode();
             const r = await fetch('/api/support', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ thread_id: c.id, message }) });
+                                                    body: JSON.stringify({ thread_id: c.id, message, files }) });
             const res = await r.json().catch(() => ({}));
             if (r.ok) { openConvos.add(c.id); renderConvos(res.conversations); }
             else { st.className = 'message error'; st.textContent = res.error || 'Something went wrong.'; send.disabled = false; }
           } catch { st.className = 'message error'; st.textContent = "Couldn't reach the server."; send.disabled = false; }
         });
-        body.append(ta, el('div', { className: 'row3' }, st, send));
+        body.append(ta, el('div', { className: 'row3' }, picker.el, st, send));
         d.append(body);
         return d;
       }));

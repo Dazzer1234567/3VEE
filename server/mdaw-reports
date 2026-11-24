@@ -1,0 +1,4 @@
+#!/bin/sh
+# Run reports.py's command line as the service: mdaw-reports list | show | offer | withdraw
+set -a; . /etc/masterdaw-reports.env; set +a
+exec sudo -E -u masterdaw-reports /usr/bin/python3 /opt/masterdaw-reports/reports.py "$@"

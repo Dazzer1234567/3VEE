@@ -1,0 +1,19 @@
+[Unit]
+Description=MASTER_DAW crash reports and test fixes (server/reports.py)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=masterdaw-reports
+EnvironmentFile=/etc/masterdaw-reports.env
+ExecStart=/usr/bin/python3 /opt/masterdaw-reports/reports.py serve --host 127.0.0.1 --port 8767
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/srv/masterdaw-reports
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -18,6 +18,13 @@ Public (nginx proxies /api/, /login/ and /download/ here):
     POST /api/inbound-email -> an email to support@, from the Cloudflare Email Worker (Bearer secret)
     GET/POST /download/<token> -> old personal download links emailed before accounts existed
                                (page with a Download button; each link works MAX_USES times)
+    GET  /api/tips?build=<b> -> the program's tooltips (tips.json), fetched by every copy at start and
+                               every few minutes; each fetch is counted (see below). ETag / 304.
+    POST /api/tips          -> new tips.json, from the developer's build only (Bearer TIPS_SECRET)
+
+Copies running: no ID is sent. Each tips fetch stores the time, the build, the country and a hash of
+the address with a salt kept only in memory and changed every day -- so fetches from one address
+count as one copy, and the address itself can never be read back. Kept TIPS_PING_DAYS days.
 
 Admin (separate listener, --admin-port; only answers loopback and Tailscale addresses, and the
 firewall only opens it on the tailscale0 interface):
@@ -79,6 +86,14 @@ SECURE_COOKIE = BASE_URL.startswith("https://")
 # Support inbox: emails to support@ arrive from a Cloudflare Email Worker (POST /api/inbound-email with
 # this shared secret); each new message triggers a short notification to ADMIN_NOTIFY.
 INBOUND_SECRET = os.environ.get("INBOUND_SECRET", "")
+
+# The program's tooltips: written by the developer's build (POST /api/tips with this secret), read by
+# every copy (GET /api/tips). See NOT_IN_RELEASE.md in MASTER_DAW.
+TIPS_SECRET = os.environ.get("TIPS_SECRET", "")
+TIPS_PATH = Path(os.environ.get("TIPS_PATH", DB_PATH.parent / "tips.json"))
+TIPS_PING_DAYS = int(os.environ.get("TIPS_PING_DAYS", "30"))
+MAX_TIPS_BYTES = 2 * 1024 * 1024
+RUNNING_WINDOW = 10 * 60      # a copy fetches every 5 minutes: seen in the last 10 is running
 ADMIN_NOTIFY = os.environ.get("ADMIN_NOTIFY", "")
 ADMIN_URL = os.environ.get("ADMIN_URL", "http://vultr-3vee.tailba9a89.ts.net:8767/admin")
 SUPPORT_DIR = Path(os.environ.get("BETA_SUPPORT_DIR", DB_PATH.parent / "support"))
@@ -143,6 +158,13 @@ def init_db():
     with _db_lock, db() as con:
         con.executescript("""
             PRAGMA journal_mode=WAL;
+            CREATE TABLE IF NOT EXISTS tips_pings (
+                at      INTEGER NOT NULL,
+                who     TEXT NOT NULL,              -- hash of the address, salted per day: see who()
+                build   TEXT,
+                country TEXT
+            );
+            CREATE INDEX IF NOT EXISTS tips_pings_at ON tips_pings(at);
             CREATE TABLE IF NOT EXISTS signups (
                 id       INTEGER PRIMARY KEY,
                 email    TEXT NOT NULL,
@@ -257,6 +279,44 @@ def init_db():
 
 def sha(token):
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+# --- copies running ---------------------------------------------------------------------------------
+
+_salt = {"day": None, "value": b""}
+
+
+def who(ip):
+    """The address, hashed with a salt that lives only in memory and changes each UTC day."""
+    day = time.strftime("%Y-%m-%d", time.gmtime())
+    if _salt["day"] != day:
+        _salt["day"], _salt["value"] = day, secrets.token_bytes(32)
+    return hashlib.sha256(_salt["value"] + ip.encode()).hexdigest()[:16]
+
+
+def note_tips_fetch(ip, build, country):
+    now = int(time.time())
+    build = re.sub(r"[^A-Za-z0-9._-]", "", build or "")[:40] or None
+    with _db_lock, db() as con:
+        con.execute("INSERT INTO tips_pings(at, who, build, country) VALUES (?,?,?,?)",
+                    (now, who(ip), build, country))
+        con.execute("DELETE FROM tips_pings WHERE at < ?", (now - TIPS_PING_DAYS * 86400,))
+
+
+def running_data():
+    """How many copies are running now, by build, and over the last 7 days hour by hour."""
+    now = int(time.time())
+    with _db_lock, db() as con:
+        live = con.execute("SELECT build, COUNT(DISTINCT who) n FROM tips_pings WHERE at >= ? GROUP BY build",
+                           (now - RUNNING_WINDOW,)).fetchall()
+        hours = con.execute("""SELECT at / 3600 h, COUNT(DISTINCT who) n FROM tips_pings
+                               WHERE at >= ? GROUP BY h ORDER BY h""", (now - 7 * 86400,)).fetchall()
+        today = con.execute("SELECT COUNT(DISTINCT who) FROM tips_pings WHERE at >= ?",
+                            (now - now % 86400,)).fetchone()[0]
+    by_build = sorted(({"build": r["build"] or "unknown", "running": r["n"]} for r in live),
+                      key=lambda b: -b["running"])
+    return {"now": sum(b["running"] for b in by_build), "by_build": by_build, "today": today,
+            "hourly": [{"at": r["h"] * 3600, "running": r["n"]} for r in hours]}
 
 
 def geo(headers):
@@ -685,6 +745,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.logout()
         if path == "/api/inbound-email":
             return self.inbound_email()
+        if path == "/api/tips":
+            return self.put_tips()
         if path == "/api/support":
             return self.support_form()
         if path.startswith("/api/account/download/"):
@@ -709,9 +771,59 @@ class Handler(BaseHTTPRequestHandler):
             return self.link_download(path[len("/download/"):])
         if path == "/api/health":
             return self.send_json(200, {"ok": True})
+        if path == "/api/tips":
+            return self.get_tips()
         if self.static_dir:
             return self.static(path)
         return self.send_text(404, "Not found")
+
+    # -- the program's tooltips ------------------------------------------------------------------
+    def get_tips(self):
+        query = dict(p.split("=", 1) for p in (urlsplit(self.path).query or "").split("&") if "=" in p)
+        try:
+            note_tips_fetch(self.client_ip(), unquote(query.get("build", "")), geo(self.headers)[0])
+        except sqlite3.Error:
+            pass  # counting never stops the tips going out
+        try:
+            data = TIPS_PATH.read_bytes()
+        except OSError:
+            return self.send_json(404, {"error": "no tips yet"})
+        tag = '"' + hashlib.sha256(data).hexdigest()[:32] + '"'
+        if self.headers.get("If-None-Match") == tag:
+            self.send_response(304)
+            self.send_header("ETag", tag)
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("ETag", tag)
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def put_tips(self):
+        import hmac
+        auth = self.headers.get("Authorization", "")
+        if not TIPS_SECRET or not hmac.compare_digest(auth.encode(), f"Bearer {TIPS_SECRET}".encode()):
+            return self.send_json(403, {"error": "forbidden"})
+        length = int(self.headers.get("Content-Length", "0"))
+        if length <= 0 or length > MAX_TIPS_BYTES:
+            return self.send_json(413, {"error": "too big"})
+        data = self.rfile.read(length)
+        try:
+            tips = json.loads(data)
+            rows = tips.get("tips") if isinstance(tips, dict) else None
+            if not isinstance(rows, list) or not all(isinstance(r, dict) and isinstance(r.get("id"), str) for r in rows):
+                raise ValueError
+        except ValueError:
+            return self.send_json(400, {"error": "not a tips file"})
+        TIPS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        tmp = TIPS_PATH.with_suffix(".tmp")
+        tmp.write_bytes(data)
+        os.replace(tmp, TIPS_PATH)
+        return self.send_json(200, {"ok": True, "tips": len(rows)})
 
     # -- sign-up and sign-in ---------------------------------------------------------------------
     def signup(self):
@@ -1133,7 +1245,7 @@ def admin_data():
     by_country = sorted(({"country": k, **v} for k, v in countries.items()),
                         key=lambda c: (c["country"] is None, -c["people"], c["country"] or ""))
     return {"generated": int(time.time()), "max_uses": MAX_USES, "platforms": platforms,
-            "countries": by_country, "people": people}
+            "countries": by_country, "people": people, "running": running_data()}
 
 
 def support_list():

@@ -211,6 +211,17 @@
       <div class="tile"><div class="n" id="t-downloaded">–</div><div class="l">Downloaded</div></div>
     </div>
 
+    <section aria-labelledby="running-title">
+      <h2 id="running-title">Copies running</h2>
+      <p class="sub">Counted from the tooltip checks each copy makes every 5 minutes; running = seen in the last 10. No ID is sent: copies behind one internet address count as one. Hover a bar for details.</p>
+      <div class="tiles">
+        <div class="tile"><div class="n" id="t-running">–</div><div class="l">Running now</div></div>
+        <div class="tile"><div class="n" id="t-today">–</div><div class="l">Seen today (UTC)</div></div>
+        <div class="tile"><div class="n" id="t-peak">–</div><div class="l">Most at once, last 7 days</div></div>
+      </div>
+      <div class="chart" id="builds"></div>
+    </section>
+
     <section aria-labelledby="chart-title">
       <h2 id="chart-title">People who downloaded, by platform</h2>
       <p class="sub">Counted once per email address. Hover a bar for details.</p>
@@ -311,6 +322,17 @@
       box.append(tip);
     }
 
+    function running() {
+      const r = data.running || { now: 0, today: 0, by_build: [], hourly: [] };
+      $('t-running').textContent = r.now;
+      $('t-today').textContent = r.today;
+      $('t-peak').textContent = Math.max(0, ...r.hourly.map(h => h.running));
+      bars($('builds'), r.by_build.map(b => ({
+        name: b.build, title: `Build ${b.build}`, value: b.running, after: ' running',
+        aria: `Build ${b.build}: ${b.running} running`, tip: [['Running now', `${b.running}`]],
+      })));
+    }
+
     function chart() {
       bars($('chart'), Object.entries(data.platforms).map(([key, p]) => ({
         name: short[key], small: key === 'mac' ? 'Apple Silicon' : '', title: p.label,
@@ -399,7 +421,7 @@
         data = await r.json();
         const present = new Set(data.people.map(p => p.email.toLowerCase()));
         [...selected].forEach(e => present.has(e) || selected.delete(e));
-        tiles(); chart(); countries(); filters(); rows();
+        tiles(); running(); chart(); countries(); filters(); rows();
         $('updated').textContent = `Updated ${fmt(data.generated)}`;
         $('error').hidden = true;
       } catch (e) {
